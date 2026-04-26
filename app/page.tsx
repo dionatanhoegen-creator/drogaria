@@ -3,12 +3,12 @@
 import React, { useState } from 'react';
 
 export default function Home() {
-  // ================= 1. ESTADOS GERAIS E NAVEGAÇÃO =================
-  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'projecao' | 'clientes' | 'ia'>('kanban');
+  // ================= 1. ESTADOS FINANCEIROS =================
   const [saldoEmConta, setSaldoEmConta] = useState<string>('24000000');
+  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes' | 'ia'>('kanban');
 
-  // ================= 2. FINANCEIRO DINÂMICO (ZERADO) =================
-  const [contasAPagar, setContasAPagar] = useState<any[]>([]); // Array vazio para iniciar zerado
+  // Lançamentos Zerados
+  const [contasAPagar, setContasAPagar] = useState<any[]>([]);
 
   const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1' });
   const [editandoId, setEditandoId] = useState<number | null>(null);
@@ -38,6 +38,7 @@ export default function Home() {
       const dataVenc = new Date(dataBase);
       dataVenc.setMonth(dataBase.getMonth() + i);
       const dataString = dataVenc.toISOString().split('T')[0];
+
       novasParcelas.push({
         id: Date.now() + i,
         descricao: numParcelas > 1 ? `${novaConta.descricao} (${i + 1}/${numParcelas})` : novaConta.descricao,
@@ -67,369 +68,316 @@ export default function Home() {
 
   const mesesInfo = [
     { nome: 'Maio', idx: 4 }, { nome: 'Junho', idx: 5 }, { nome: 'Julho', idx: 6 }, 
-    { nome: 'Agosto', idx: 7 }, { nome: 'Setembro', idx: 8 }, { nome: 'Outubro', idx: 9 }
+    { nome: 'Agosto', idx: 7 }, { nome: 'Setembro', idx: 8 }, { nome: 'Outubro', idx: 9 },
+    { nome: 'Novembro', idx: 10 }, { nome: 'Dezembro', idx: 11 }
   ];
 
-  let acumulado = capital;
-  const projecaoMeses = mesesInfo.map(m => {
-    const custo = somarMes(m.idx);
-    acumulado -= custo;
-    return { ...m, custo, saldo: acumulado, detalhes: contasAPagar.filter(c => c.mesIndex === m.idx) };
+  let caixaAcumulado = capital;
+  const gastosPreMaio = contasAPagar.filter(c => c.mesIndex < 4).reduce((acc, curr) => acc + curr.valorNum, 0);
+  caixaAcumulado -= gastosPreMaio;
+
+  const projecao = mesesInfo.map((mesObj) => {
+    const totalMes = somarMes(mesObj.idx);
+    caixaAcumulado -= totalMes;
+    return { ...mesObj, totalMes, saldoFinal: caixaAcumulado, detalhes: contasAPagar.filter(c => c.mesIndex === mesObj.idx) };
   });
 
-  // ================= 3. CRM DE CLIENTES (ZERADO E COM EDIÇÃO) =================
-  const [clientes, setClientes] = useState<any[]>([]); // Array vazio
-  const [novoCli, setNovoCli] = useState({ nome: '', whats: '', compras: '', perfil: '', tipo: '' });
-  
+  // ================= 2. ESTADOS DE CLIENTES (CRM) =================
+  // Lista Zerada
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
+
   // Estados para edição do Cliente
   const [editandoCliId, setEditandoCliId] = useState<number | null>(null);
-  const [tempEditCli, setTempEditCli] = useState({ nome: '', whats: '', compras: '', perfil: '', tipo: '' });
+  const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
 
   const salvarCliente = (e: React.FormEvent) => {
     e.preventDefault();
-    setClientes([...clientes, { id: Date.now(), ...novoCli }]);
-    setNovoCli({ nome: '', whats: '', compras: '', perfil: '', tipo: '' });
+    setClientes([...clientes, { id: Date.now(), ...novoCliente }]);
+    setNovoCliente({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   };
 
-  const iniciarEdicaoCliente = (cli: any) => {
+  const iniciarEdicaoCli = (cli: any) => {
     setEditandoCliId(cli.id);
-    setTempEditCli({ nome: cli.nome, whats: cli.whats, compras: cli.compras, perfil: cli.perfil, tipo: cli.tipo });
+    setTempEditCli({ nome: cli.nome, whatsapp: cli.whatsapp, compras: cli.compras, atendimento: cli.atendimento, tipo: cli.tipo });
   };
 
-  const confirmarEdicaoCliente = (id: number) => {
-    setClientes(clientes.map(c => (c.id === id ? { ...c, ...tempEditCli } : c)));
+  const confirmarEdicaoCli = (id: number) => {
+    setClientes(clientes.map(c => c.id === id ? { ...c, ...tempEditCli } : c));
     setEditandoCliId(null);
   };
 
-  // ================= 4. PROJEÇÃO DE INVESTIMENTO (PONTO DE EQUILÍBRIO) =================
-  const [fatEstimado, setFatEstimado] = useState<{ [key: number]: string }>({ 4: '0', 5: '0', 6: '0', 7: '0', 8: '0', 9: '0' });
-
-  const atualizarFaturamento = (idx: number, valor: string) => {
-    setFatEstimado({ ...fatEstimado, [idx]: valor.replace(/\D/g, '') });
-  };
-
-  // ================= 5. KANBAN 360º (BOARD PRINCIPAL ZERADO) =================
-  const colunas = ['Backlog', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
+  // ================= 3. KANBAN 360º (BOARD PRINCIPAL) =================
+  const colunasKanban = ['Backlog', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
-  const [cards, setCards] = useState<any[]>([]); // Board zerado para você organizar
+  const [dataInauguracao, setDataInauguracao] = useState('');
 
-  const adicionarCard = (setor: string) => {
-    setCards([...cards, { id: Date.now(), titulo: 'Nova Tarefa', area: setor, status: 'A Fazer', inicio: '', fim: '', bloqueado: false }]);
-  };
+  // Kanban Zerado
+  const [cards, setCards] = useState<any[]>([]);
 
-  const atualizarCard = (id: number, campo: string, valor: string | boolean) => {
-    setCards(cards.map(c => c.id === id ? { ...c, [campo]: valor } : c));
+  const adicionarCard = (status: string) => {
+    setCards([...cards, { id: Date.now(), titulo: 'Nova Tarefa', area: 'Infraestrutura', status, bloqueado: false }]);
   };
 
   const getTagColor = (area: string) => {
-    if (area === 'Administrativo') return 'bg-blue-100 text-blue-700';
-    if (area === 'RH') return 'bg-purple-100 text-purple-700';
-    if (area === 'Infraestrutura') return 'bg-orange-100 text-orange-700';
-    if (area === 'Suprimentos') return 'bg-teal-100 text-teal-700';
-    if (area === 'Financeiro') return 'bg-green-100 text-green-700';
-    return 'bg-slate-100 text-slate-700';
-  };
-
-  // ================= 6. LEITOR IA DE PDF =================
-  const [isLendo, setIsLendo] = useState(false);
-  const [dadosIA, setDadosIA] = useState<any>(null);
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsLendo(true);
-    setTimeout(() => {
-      setDadosIA({
-        empresa: 'Maringá Esquadrias e Vidros',
-        origem: 'Maringá/PR',
-        itens: 'Vidro temperado 8mm, Fachada ACM Prata',
-        total: '12.500,00',
-        parcelas: '3x',
-        prazo: '15 dias'
-      });
-      setIsLendo(false);
-    }, 2000);
+    switch (area) {
+      case 'Administrativo': return 'bg-blue-100 text-blue-700';
+      case 'RH': return 'bg-purple-100 text-purple-700';
+      case 'Infraestrutura': return 'bg-orange-100 text-orange-700';
+      case 'Suprimentos': return 'bg-teal-100 text-teal-700';
+      case 'Financeiro': return 'bg-[#eaf8f1] text-[#009e90]';
+      default: return 'bg-slate-100 text-slate-700';
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-10 text-slate-800">
       
-      {/* HEADER */}
-      <header className="bg-[#009e90] text-white p-4 shadow-md flex justify-between items-center">
+      {/* CABEÇALHO */}
+      <header className="bg-[#009e90] text-white p-4 shadow-md flex justify-between items-center border-b-4 border-[#e8601c]">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Painel de Transição - Associadas</h1>
-          <p className="text-sm opacity-90">Gestão 360º • Unidade Maringá</p>
+          <p className="text-sm opacity-90">Unidade Maringá, PR • Gestão Operacional Integrada</p>
         </div>
       </header>
 
-      {/* NAVEGAÇÃO YELLOWLEAF */}
-      <div className="bg-white border-b border-slate-200 px-6 py-3 flex space-x-2 shadow-sm overflow-x-auto">
-        <button onClick={() => setAbaAtiva('kanban')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20' : 'text-slate-500'}`}>🏗️ KANBAN OPERAÇÃO</button>
-        <button onClick={() => setAbaAtiva('contas')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20' : 'text-slate-500'}`}>💸 CONTAS A PAGAR</button>
-        <button onClick={() => setAbaAtiva('projecao')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${abaAtiva === 'projecao' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20' : 'text-slate-500'}`}>📈 PROJEÇÃO & INVESTIMENTO</button>
-        <button onClick={() => setAbaAtiva('clientes')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20' : 'text-slate-500'}`}>👥 CLIENTES (CRM)</button>
-        <button onClick={() => setAbaAtiva('ia')} className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${abaAtiva === 'ia' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20' : 'text-slate-500'}`}>🤖 LEITOR IA</button>
+      {/* NAVEGAÇÃO ESTILO YELLOWLEAF CRM */}
+      <div className="bg-white border-b border-slate-200 px-6 py-3 flex space-x-4 shadow-sm overflow-x-auto">
+        <button onClick={() => setAbaAtiva('kanban')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📋</span> BOARD OPERACIONAL</button>
+        <button onClick={() => setAbaAtiva('contas')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
+        <button onClick={() => setAbaAtiva('clientes')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>👥</span> GESTÃO DE CLIENTES</button>
       </div>
 
-      <main className="p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
+      <main className="flex-1 p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
         
-        {/* RESUMO TOPO */}
+        {/* RESUMO SIMPLIFICADO NO TOPO */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 shadow-sm">
-              <p className="text-[10px] text-blue-600 font-bold uppercase mb-1">Saldo Base em Conta</p>
-              <div className="flex items-center text-2xl font-black text-blue-800">
+            <div className="bg-[#eaf8f1] p-5 rounded-2xl border border-[#009e90]/30 shadow-sm">
+              <p className="text-[10px] text-[#009e90] font-bold uppercase mb-1">Saldo Base (240k)</p>
+              <div className="flex items-center text-2xl font-black text-[#009e90]">
                 <span className="mr-1">R$</span>
                 <input type="text" value={maskCurrency(saldoEmConta)} onChange={(e) => setSaldoEmConta(e.target.value)} className="bg-transparent w-full outline-none" />
               </div>
             </div>
-            {projecaoMeses.slice(0,3).map((p, idx) => (
-              <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Saída em {p.nome}</p>
-                <p className="text-2xl font-black text-red-600">R$ {maskCurrency((p.custo * 100).toString())}</p>
+            {projecao.slice(0, 3).map((p, idx) => (
+              <div key={idx} className="bg-white p-5 rounded-2xl border border-[#e8601c]/20 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-1 h-full bg-[#e8601c]/50"></div>
+                <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Pagar em {p.nome}</p>
+                <p className="text-2xl font-black text-[#e8601c]">R$ {maskCurrency((p.totalMes * 100).toString())}</p>
               </div>
             ))}
         </div>
 
-        {/* ================= ABA: CONTAS A PAGAR ================= */}
+        {/* ================= ABA 1: BOARD OPERACIONAL (KANBAN) ================= */}
+        {abaAtiva === 'kanban' && (
+          <section className="flex gap-4 overflow-x-auto pb-6 items-start h-full">
+            {colunasKanban.map(coluna => (
+              <div key={coluna} className="min-w-[320px] flex-1 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-inner">
+                
+                <h3 className="font-bold text-white bg-[#009e90] px-4 py-3 rounded-xl mb-4 flex justify-between items-center shadow-md">
+                  {coluna}
+                  <span className="bg-white text-[#009e90] rounded-full px-2.5 py-0.5 text-[10px] font-black shadow-sm">
+                    {cards.filter(c => c.status === coluna).length}
+                  </span>
+                </h3>
+
+                {cards.filter(c => c.status === coluna).map(card => (
+                  <div key={card.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-[#e8601c] border-y border-r border-slate-200 mb-3 group transition-all hover:border-[#009e90] hover:shadow-md">
+                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${getTagColor(card.area)}`}>{card.area}</span>
+                    <p className="font-bold text-sm mt-2 text-slate-800">{card.titulo}</p>
+                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-100">
+                       <button className="text-[10px] text-slate-500 hover:text-[#e8601c] font-bold transition-colors">📅 Definir Prazo</button>
+                       <button onClick={() => setCards(cards.map(c => c.id === card.id ? {...c, status: 'Concluído'} : c))} className="text-[10px] text-white bg-[#009e90] px-3 py-1.5 rounded-full font-bold hover:bg-[#007a6f] transition-colors shadow-sm">✓ Finalizar</button>
+                    </div>
+                  </div>
+                ))}
+                
+                <button onClick={() => adicionarCard(coluna)} className="w-full mt-2 py-3 border-2 border-dashed border-[#009e90]/40 rounded-xl text-[#009e90] text-xs font-bold hover:bg-[#eaf8f1] transition-all">
+                  + Nova Tarefa
+                </button>
+              </div>
+            ))}
+          </section>
+        )}
+
+        {/* ================= ABA 2: CONTAS A PAGAR ================= */}
         {abaAtiva === 'contas' && (
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90]">Lançamento de Despesa / Obra</h2>
+              <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90] text-[#009e90]">Novo Lançamento Financeiro</h2>
               <form onSubmit={salvarDespesa} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
                 <div className="md:col-span-2">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Descrição</label>
-                  <input type="text" value={novaConta.descricao} onChange={(e) => setNovaConta({...novaConta, descricao: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm outline-none focus:border-[#009e90]" required />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Descrição</label>
+                  <input type="text" value={novaConta.descricao} onChange={(e) => setNovaConta({...novaConta, descricao: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm outline-none focus:border-[#009e90]" placeholder="Ex: Conta de Luz, RT, Fornecedor..." required />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Vencimento</label>
-                  <input type="date" value={novaConta.vencimento} onChange={(e) => setNovaConta({...novaConta, vencimento: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm outline-none" required />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Vencimento (1ª Parc)</label>
+                  <input type="date" value={novaConta.vencimento} onChange={(e) => setNovaConta({...novaConta, vencimento: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm outline-none focus:border-[#009e90]" required />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Valor R$</label>
-                  <input type="text" value={maskCurrency(novaConta.valor)} onChange={(e) => setNovaConta({...novaConta, valor: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm text-right font-bold" required />
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Valor (R$)</label>
+                  <input type="text" value={maskCurrency(novaConta.valor)} onChange={(e) => setNovaConta({...novaConta, valor: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm text-right font-bold outline-none focus:border-[#009e90]" placeholder="0,00" required />
                 </div>
                 <div>
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Nº Parcelas</label>
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nº Parcelas</label>
                   <div className="flex gap-2">
-                    <input type="number" min="1" value={novaConta.parcelas} onChange={(e) => setNovaConta({...novaConta, parcelas: e.target.value})} className="w-full border rounded-xl p-2.5 text-center text-sm outline-none" />
-                    <button type="submit" className="bg-[#e8601c] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow hover:bg-[#d05315]">SALVAR</button>
+                    <input type="number" min="1" max="48" value={novaConta.parcelas} onChange={(e) => setNovaConta({...novaConta, parcelas: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm text-center outline-none focus:border-[#009e90]" />
+                    <button type="submit" className="bg-[#e8601c] hover:bg-[#d05315] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all">SALVAR</button>
                   </div>
                 </div>
               </form>
             </section>
 
-            <div className="overflow-x-auto pb-4 flex gap-4">
-              {projecaoMeses.map(p => (
-                <div key={p.idx} className="min-w-[240px] bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <h3 className="font-black text-[#009e90] border-b pb-2 mb-3">{p.nome}</h3>
-                  <div className="space-y-1 mb-4 h-32 overflow-y-auto pr-1">
-                    {p.detalhes.map(d => (
-                      <div key={d.id} className="flex justify-between text-[10px] font-medium border-b border-slate-50 pb-1">
-                        <span className="truncate w-32">{d.descricao}</span>
-                        <span className="font-bold text-slate-700">R$ {maskCurrency(d.valorStr)}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="border-t pt-3">
-                    <p className="text-[9px] font-bold text-slate-400 uppercase">Saldo Projetado</p>
-                    <p className={`text-xl font-black ${p.saldo < 0 ? 'text-red-600' : 'text-[#009e90]'}`}>R$ {maskCurrency((p.saldo * 100).toString())}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-[#eaf8f1] border-b border-[#009e90]/20 text-[10px] uppercase font-bold text-[#009e90]">
+                  <tr>
+                    <th className="px-6 py-4">Vencimento</th>
+                    <th className="px-6 py-4">Descrição da Despesa</th>
+                    <th className="px-6 py-4 text-right">Valor (R$)</th>
+                    <th className="px-6 py-4 text-center">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {contasAPagar.length === 0 && (
+                    <tr><td colSpan={4} className="p-4 text-center text-slate-400 italic">Nenhum lançamento efetuado.</td></tr>
+                  )}
+                  {contasAPagar.map((conta) => (
+                    <tr key={conta.id} className="hover:bg-slate-50 transition-all">
+                      <td className="px-6 py-3">
+                        {editandoId === conta.id ? 
+                          <input type="date" value={tempEdit.vencimento} onChange={(e) => setTempEdit({...tempEdit, vencimento: e.target.value})} className="border rounded p-1.5 text-xs outline-none focus:border-[#009e90]" /> : 
+                          <span className="font-mono font-bold text-slate-600">{conta.vencimento.split('-').reverse().join('/')}</span>
+                        }
+                      </td>
+                      <td className="px-6 py-3">
+                        {editandoId === conta.id ? 
+                          <input type="text" value={tempEdit.descricao} onChange={(e) => setTempEdit({...tempEdit, descricao: e.target.value})} className="border rounded p-1.5 w-full text-xs outline-none focus:border-[#009e90]" /> : 
+                          <span className="font-bold text-slate-800">{conta.descricao}</span>
+                        }
+                      </td>
+                      <td className="px-6 py-3 text-right">
+                        {editandoId === conta.id ? 
+                          <input type="text" value={tempEdit.valor} onChange={(e) => setTempEdit({...tempEdit, valor: maskCurrency(e.target.value)})} className="border rounded p-1.5 text-right text-xs font-bold outline-none focus:border-[#009e90]" /> : 
+                          <span className="font-black text-[#e8601c]">R$ {maskCurrency(conta.valorStr)}</span>
+                        }
+                      </td>
+                      <td className="px-6 py-3 text-center space-x-3">
+                        {editandoId === conta.id ? (
+                          <>
+                            <button onClick={() => confirmarEdicao(conta.id)} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Salvar</button>
+                            <button onClick={() => setEditandoId(null)} className="text-slate-400 font-bold text-xs uppercase hover:underline">Cancelar</button>
+                          </>
+                        ) : (
+                          <>
+                            <button onClick={() => { setEditandoId(conta.id); setTempEdit({ descricao: conta.descricao, vencimento: conta.vencimento, valor: maskCurrency(conta.valorStr) }); }} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Editar</button>
+                            <button onClick={() => setContasAPagar(contasAPagar.filter(c => c.id !== conta.id))} className="text-red-400 font-bold text-xs uppercase hover:underline">Excluir</button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </section>
 
-            <details className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-               <summary className="p-4 font-bold text-slate-700 cursor-pointer outline-none hover:bg-slate-50">📂 Clique para Editar Lançamentos</summary>
-               <table className="w-full text-sm text-left border-t">
-                  <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-500">
-                    <tr><th className="p-4">Vencimento</th><th className="p-4">Descrição</th><th className="p-4 text-right">Valor</th><th className="p-4 text-center">Ações</th></tr>
-                  </thead>
-                  <tbody>
-                    {contasAPagar.length === 0 && <tr><td colSpan={4} className="text-center p-4 text-slate-400">Sem contas lançadas.</td></tr>}
-                    {contasAPagar.map(c => (
-                      <tr key={c.id} className="border-b">
-                        <td className="p-4">
-                          {editandoId === c.id ? <input type="date" value={tempEdit.vencimento} onChange={(e) => setTempEdit({...tempEdit, vencimento: e.target.value})} className="border p-1 text-xs" /> : c.vencimento.split('-').reverse().join('/')}
-                        </td>
-                        <td className="p-4 font-bold">
-                          {editandoId === c.id ? <input type="text" value={tempEdit.descricao} onChange={(e) => setTempEdit({...tempEdit, descricao: e.target.value})} className="border p-1 w-full text-xs" /> : c.descricao}
-                        </td>
-                        <td className="p-4 text-right text-red-600 font-bold">
-                          {editandoId === c.id ? <input type="text" value={tempEdit.valor} onChange={(e) => setTempEdit({...tempEdit, valor: maskCurrency(e.target.value)})} className="border p-1 text-right text-xs" /> : `R$ ${maskCurrency(c.valorStr)}`}
-                        </td>
-                        <td className="p-4 text-center space-x-2">
-                          {editandoId === c.id ? (
-                            <><button onClick={() => confirmarEdicao(c.id)} className="text-green-600 font-bold text-xs">Salvar</button> <button onClick={() => setEditandoId(null)} className="text-slate-400 font-bold text-xs">Cancelar</button></>
-                          ) : (
-                            <><button onClick={() => { setEditandoId(c.id); setTempEdit({ descricao: c.descricao, vencimento: c.vencimento, valor: maskCurrency(c.valorStr) }); }} className="text-blue-500 font-bold text-xs">Editar</button> <button onClick={() => setContasAPagar(contasAPagar.filter(x => x.id !== c.id))} className="text-red-400 font-bold text-xs">Excluir</button></>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-               </table>
-            </details>
-          </div>
-        )}
-
-        {/* ABA: KANBAN 360º */}
-        {abaAtiva === 'kanban' && (
-          <section className="flex gap-4 overflow-x-auto pb-6 items-start h-full">
-            {colunas.map(col => (
-              <div key={col} className="min-w-[300px] flex-1 bg-slate-100 p-4 rounded-2xl border shadow-inner">
-                <h3 className="font-bold text-slate-600 mb-4">{col}</h3>
-                {cards.filter(c => c.status === col).map(card => (
-                  <div key={card.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-200 mb-3 group">
-                    <div className="flex justify-between items-start mb-2">
-                      <select 
-                        disabled={card.bloqueado} 
-                        value={card.area} 
-                        onChange={(e) => atualizarCard(card.id, 'area', e.target.value)}
-                        className={`text-[9px] font-bold uppercase px-2 py-1 rounded-lg outline-none ${getTagColor(card.area)}`}
-                      >
-                        {tagsSetores.map(t => <option key={t} value={t}>{t}</option>)}
-                      </select>
-                      <button onClick={() => atualizarCard(card.id, 'bloqueado', !card.bloqueado)} className="text-slate-400 text-sm hover:text-slate-700">{card.bloqueado ? '🔒' : '🔓'}</button>
+            <div className="overflow-x-auto pb-4">
+              <div className="flex gap-4 min-w-max">
+                {projecao.map((p) => (
+                  <div key={p.idx} className={`w-64 bg-white p-5 rounded-2xl border shadow-sm flex flex-col ${p.saldoFinal < 0 ? 'bg-red-50 border-red-200' : 'border-slate-200'}`}>
+                    <div className="flex justify-between items-center border-b pb-2 mb-3 border-slate-100">
+                      <span className="font-black text-[#009e90] text-lg">{p.nome}</span>
+                      <span className="text-[10px] bg-[#e8601c]/10 text-[#e8601c] px-2 py-1 rounded-lg font-bold">Saída R$ {maskCurrency((p.totalMes * 100).toString())}</span>
                     </div>
+                    
+                    <details className="group mb-4 flex-1">
+                      <summary className="text-[11px] text-[#e8601c] font-bold cursor-pointer hover:underline outline-none mb-2">Ver Relação Lançada ▾</summary>
+                      <div className="space-y-2 mt-2 max-h-32 overflow-y-auto pr-1 border-l-2 border-slate-100 pl-2">
+                        {p.detalhes.map(c => (
+                          <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600">
+                            <span className="truncate w-32">{c.descricao}</span>
+                            <span className="font-bold text-slate-800">R$ {maskCurrency(c.valorStr)}</span>
+                          </div>
+                        ))}
+                        {p.detalhes.length === 0 && <span className="text-[10px] italic text-slate-400">Sem contas lançadas neste mês.</span>}
+                      </div>
+                    </details>
 
-                    <input 
-                      disabled={card.bloqueado}
-                      type="text" 
-                      value={card.titulo} 
-                      onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
-                      className={`font-bold text-sm mt-2 w-full bg-transparent outline-none ${card.bloqueado ? '' : 'border-b border-slate-200 focus:border-[#009e90]'}`}
-                      placeholder="Descreva a tarefa..."
-                    />
-
-                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-100 gap-2">
-                       <select 
-                         disabled={card.bloqueado} 
-                         value={card.status} 
-                         onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
-                         className="text-[10px] font-bold bg-slate-50 border rounded p-1 outline-none flex-1"
-                       >
-                         {colunas.map(c => <option key={c} value={c}>{c}</option>)}
-                       </select>
-                       {!card.bloqueado && <button onClick={() => setCards(cards.filter(x => x.id !== card.id))} className="text-[10px] text-red-500 font-bold bg-red-50 px-2 py-1 rounded hover:bg-red-100">Excluir</button>}
+                    <div className="border-t border-slate-100 pt-3 mt-auto">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Saldo Final Projetado</p>
+                      <p className={`text-xl font-black ${p.saldoFinal < 0 ? 'text-red-600' : 'text-[#009e90]'}`}>R$ {maskCurrency((p.saldoFinal * 100).toString())}</p>
                     </div>
                   </div>
                 ))}
-                <button onClick={() => adicionarCard(col)} className="w-full py-2 border-2 border-dashed rounded-xl text-slate-400 text-xs font-bold hover:bg-white transition-all">+ Nova Tarefa</button>
               </div>
-            ))}
-          </section>
-        )}
-
-        {/* ABA: PROJEÇÃO & PONTO DE EQUILÍBRIO */}
-        {abaAtiva === 'projecao' && (
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
-             <h2 className="text-lg font-bold mb-6 border-b pb-2 border-[#009e90]">Simulador de Ponto de Equilíbrio (Break-even)</h2>
-             <div className="flex gap-6 h-64 items-end border-b border-slate-200 pb-4 overflow-x-auto">
-                {projecaoMeses.map(m => {
-                  const fat = parseCurrency(maskCurrency(fatEstimado[m.idx] || '0'));
-                  const maxVal = Math.max(fat, m.custo, 1);
-                  const hFat = (fat / maxVal) * 200;
-                  const hCusto = (m.custo / maxVal) * 200;
-                  return (
-                    <div key={m.idx} className="flex-1 min-w-[80px] flex flex-col items-center gap-2">
-                       <div className="flex gap-1 items-end">
-                          <div className="w-6 bg-green-400 rounded-t shadow-sm" style={{ height: hFat }}></div>
-                          <div className="w-6 bg-red-400 rounded-t shadow-sm" style={{ height: hCusto }}></div>
-                       </div>
-                       <p className="text-[10px] font-bold text-slate-500 uppercase">{m.nome}</p>
-                       <input type="text" value={maskCurrency(fatEstimado[m.idx] || '0')} onChange={(e) => atualizarFaturamento(m.idx, e.target.value)} className="w-20 border rounded p-1 text-[10px] text-center font-bold text-green-700 bg-green-50" placeholder="Fat. Estimado" />
-                    </div>
-                  );
-                })}
-             </div>
-             <p className="text-xs text-slate-500 mt-4 italic">* Digite sua meta de faturamento nos campos verdes. Quando a barra verde superar a vermelha (despesas fixas + obras daquele mês), você atingiu o Break-even.</p>
-          </section>
-        )}
-
-        {/* ABA: CLIENTES (CRM) COM OPÇÕES DE EDITAR/ALTERAR */}
-        {abaAtiva === 'clientes' && (
-          <div className="flex flex-col gap-6">
-            <section className="bg-white rounded-2xl border p-6 shadow-sm">
-               <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90]">Novo Cliente / Paciente VIP</h2>
-               <form onSubmit={salvarCliente} className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <input placeholder="Nome Completo" value={novoCli.nome} onChange={e => setNovoCli({...novoCli, nome: e.target.value})} className="border p-2.5 rounded-xl text-sm outline-none focus:border-[#009e90]" required />
-                  <input placeholder="WhatsApp (DDD+Número)" value={novoCli.whats} onChange={e => setNovoCli({...novoCli, whats: e.target.value})} className="border p-2.5 rounded-xl text-sm outline-none focus:border-[#009e90]" required />
-                  <input placeholder="Medicação de Uso" value={novoCli.tipo} onChange={e => setNovoCli({...novoCli, tipo: e.target.value})} className="border p-2.5 rounded-xl text-sm outline-none focus:border-[#009e90]" />
-                  <textarea placeholder="Preferência de Atendimento e Compras (ex: Gosta de áudio, compra fitoterápicos...)" value={novoCli.perfil} onChange={e => setNovoCli({...novoCli, perfil: e.target.value})} className="border p-2.5 rounded-xl text-sm md:col-span-3 h-20 outline-none focus:border-[#009e90] resize-none" />
-                  <button type="submit" className="bg-[#e8601c] text-white font-bold p-2.5 rounded-xl shadow hover:bg-[#d05315] md:col-span-3">CADASTRAR CLIENTE</button>
-               </form>
-            </section>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-               {clientes.length === 0 && <p className="text-slate-400 text-sm italic col-span-full text-center">Nenhum cliente cadastrado.</p>}
-               {clientes.map(cli => (
-                 <div key={cli.id} className="bg-white p-5 rounded-2xl border shadow-sm flex flex-col">
-                    {editandoCliId === cli.id ? (
-                      // MODO EDIÇÃO DO CLIENTE
-                      <div className="space-y-3">
-                        <input type="text" value={tempEditCli.nome} onChange={(e) => setTempEditCli({...tempEditCli, nome: e.target.value})} className="w-full border p-2 rounded text-sm font-bold" placeholder="Nome" />
-                        <input type="text" value={tempEditCli.whats} onChange={(e) => setTempEditCli({...tempEditCli, whats: e.target.value})} className="w-full border p-2 rounded text-sm" placeholder="WhatsApp" />
-                        <input type="text" value={tempEditCli.tipo} onChange={(e) => setTempEditCli({...tempEditCli, tipo: e.target.value})} className="w-full border p-2 rounded text-sm" placeholder="Tipo" />
-                        <textarea value={tempEditCli.perfil} onChange={(e) => setTempEditCli({...tempEditCli, perfil: e.target.value})} className="w-full border p-2 rounded text-sm h-16 resize-none" placeholder="Perfil" />
-                        <div className="flex gap-2">
-                          <button onClick={() => confirmarEdicaoCliente(cli.id)} className="bg-[#009e90] text-white text-xs font-bold px-3 py-2 rounded flex-1">Salvar</button>
-                          <button onClick={() => setEditandoCliId(null)} className="bg-slate-200 text-slate-700 text-xs font-bold px-3 py-2 rounded flex-1">Cancelar</button>
-                        </div>
-                      </div>
-                    ) : (
-                      // MODO VISUALIZAÇÃO DO CLIENTE
-                      <>
-                        <div className="flex justify-between items-start mb-3 border-b pb-2">
-                           <h3 className="font-black text-slate-800 text-lg">{cli.nome}</h3>
-                           {/* A Tag nativa de link (<a>) garante o direcionamento perfeito no React */}
-                           <a href={`https://wa.me/55${cli.whats.replace(/\D/g,'')}`} target="_blank" rel="noopener noreferrer" className="bg-green-500 text-white text-xs px-3 py-1.5 rounded-full font-bold shadow hover:bg-green-600 transition-all flex items-center gap-1">
-                             💬 Chamar
-                           </a>
-                        </div>
-                        <p className="text-xs mt-2 text-slate-600"><strong>Medicação/Tipo:</strong> {cli.tipo}</p>
-                        <p className="text-xs text-slate-500 italic mt-2 flex-1">"{cli.perfil}"</p>
-                        
-                        <div className="mt-4 pt-3 border-t border-slate-100 flex gap-3">
-                          <button onClick={() => iniciarEdicaoCliente(cli)} className="text-blue-500 font-bold text-xs hover:underline">Editar</button>
-                          <button onClick={() => setClientes(clientes.filter(c => c.id !== cli.id))} className="text-red-400 font-bold text-xs hover:underline">Excluir</button>
-                        </div>
-                      </>
-                    )}
-                 </div>
-               ))}
             </div>
           </div>
         )}
 
-        {/* ABA: LEITOR IA */}
-        {abaAtiva === 'ia' && (
-          <section className="bg-white rounded-2xl border p-12 text-center shadow-sm">
-             <h2 className="text-xl font-bold mb-4 text-[#009e90]">Leitor de Orçamentos com IA</h2>
-             <div 
-               onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }} 
-               onDrop={handleDrop}
-               className={`border-4 border-dashed rounded-3xl p-16 flex flex-col items-center transition-all cursor-pointer ${isLendo ? 'bg-orange-50 border-orange-400 animate-pulse' : 'bg-slate-50 border-slate-300 hover:bg-slate-100'}`}
-             >
-                <span className="text-5xl mb-4">{isLendo ? '⏳' : '📄'}</span>
-                <p className="font-bold text-slate-500">{isLendo ? 'A IA está lendo os itens do orçamento...' : 'Arraste o PDF ou Word do fornecedor aqui'}</p>
-             </div>
+        {/* ================= ABA 3: GESTÃO DE CLIENTES ================= */}
+        {abaAtiva === 'clientes' && (
+          <div className="flex flex-col gap-6">
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90] text-[#009e90]">Novo Paciente / Cliente VIP</h2>
+              <form onSubmit={salvarCliente} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input placeholder="Nome do Cliente" value={novoCliente.nome} onChange={e => setNovoCliente({...novoCliente, nome: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required />
+                <input placeholder="WhatsApp (DDD+Número)" value={novoCliente.whatsapp} onChange={e => setNovoCliente({...novoCliente, whatsapp: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required />
+                <input placeholder="Tipo (Contínuo, Manipulação...)" value={novoCliente.tipo} onChange={e => setNovoCliente({...novoCliente, tipo: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" />
+                <input placeholder="O que mais compra?" value={novoCliente.compras} onChange={e => setNovoCliente({...novoCliente, compras: e.target.value})} className="border rounded-xl p-2.5 text-sm md:col-span-2 focus:border-[#009e90] outline-none" />
+                <textarea placeholder="Perfil de Atendimento (ex: Gosta de explicações, quer brinde...)" value={novoCliente.atendimento} onChange={e => setNovoCliente({...novoCliente, atendimento: e.target.value})} className="border rounded-xl p-2.5 text-sm md:col-span-3 h-20 resize-none focus:border-[#009e90] outline-none" />
+                <div className="md:col-span-3 text-right"><button type="submit" className="bg-[#e8601c] hover:bg-[#d05315] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all">SALVAR CLIENTE</button></div>
+              </form>
+            </section>
 
-             {dadosIA && !isLendo && (
-               <div className="mt-8 text-left bg-[#eaf8f1] p-6 rounded-2xl border border-[#009e90]/30 max-w-3xl mx-auto shadow-sm">
-                  <h3 className="font-black text-[#009e90] text-lg mb-4">✅ Dados Extraídos com Sucesso</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm bg-white p-4 rounded-xl">
-                     <p><strong>🏢 Empresa:</strong> {dadosIA.empresa}</p>
-                     <p><strong>📍 Origem:</strong> {dadosIA.origem}</p>
-                     <p className="md:col-span-2"><strong>📦 Itens Cotados:</strong> {dadosIA.itens}</p>
-                     <p className="text-red-600 font-bold text-lg"><strong>💰 Total:</strong> R$ {dadosIA.total}</p>
-                     <p><strong>💳 Condição:</strong> {dadosIA.parcelas}</p>
-                     <p><strong>🕒 Prazo:</strong> {dadosIA.prazo}</p>
-                  </div>
-                  <button className="mt-6 w-full bg-[#009e90] text-white font-bold py-3 rounded-xl hover:bg-[#008276] transition-colors shadow-md">
-                    LANÇAR DIRETO NO CONTAS A PAGAR (EM BREVE)
-                  </button>
-               </div>
-             )}
-          </section>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {clientes.length === 0 && <p className="text-slate-400 text-sm italic col-span-full">Nenhum cliente cadastrado no momento.</p>}
+              {clientes.map(cli => (
+                <div key={cli.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col group hover:border-[#009e90] transition-all">
+                  
+                  {editandoCliId === cli.id ? (
+                    <div className="flex flex-col gap-3 flex-1">
+                       <input value={tempEditCli.nome} onChange={e => setTempEditCli({...tempEditCli, nome: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90]" placeholder="Nome Completo"/>
+                       <input value={tempEditCli.whatsapp} onChange={e => setTempEditCli({...tempEditCli, whatsapp: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90]" placeholder="WhatsApp"/>
+                       <input value={tempEditCli.tipo} onChange={e => setTempEditCli({...tempEditCli, tipo: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90]" placeholder="Tipo de Medicação"/>
+                       <input value={tempEditCli.compras} onChange={e => setTempEditCli({...tempEditCli, compras: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90]" placeholder="O que mais compra?"/>
+                       <textarea value={tempEditCli.atendimento} onChange={e => setTempEditCli({...tempEditCli, atendimento: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90] resize-none h-20" placeholder="Perfil de Atendimento"/>
+                       <div className="flex gap-2 mt-2">
+                         <button onClick={() => confirmarEdicaoCli(cli.id)} className="bg-[#009e90] text-white font-bold text-xs px-3 py-2 rounded-lg flex-1 hover:bg-[#007a6f]">Salvar</button>
+                         <button onClick={() => setEditandoCliId(null)} className="bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-lg flex-1 hover:bg-slate-300">Cancelar</button>
+                       </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-start mb-3 border-b pb-3 border-slate-100">
+                        <h3 className="font-black text-[#009e90] text-lg">{cli.nome}</h3>
+                        {/* LINK DO WHATSAPP CORRIGIDO (TAG A) */}
+                        <a 
+                          href={`https://wa.me/55${cli.whatsapp.replace(/\D/g,'')}`} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          className="bg-[#eaf8f1] text-[#009e90] px-3 py-1.5 rounded-full shadow-sm hover:bg-[#009e90] hover:text-white transition-all flex items-center justify-center text-xs font-bold"
+                        >
+                          💬 WhatsApp
+                        </a>
+                      </div>
+                      <div className="space-y-2 text-xs flex-1">
+                        <p><span className="text-slate-400 font-bold uppercase tracking-tighter">Tipo:</span> {cli.tipo}</p>
+                        <p><span className="text-slate-400 font-bold uppercase tracking-tighter">Compras:</span> {cli.compras}</p>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 mt-2">
+                          <span className="text-slate-400 font-bold uppercase block mb-1">Perfil:</span>
+                          <p className="text-slate-600 italic">"{cli.atendimento}"</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between">
+                         <button onClick={() => iniciarEdicaoCli(cli)} className="text-[#009e90] font-bold text-xs hover:underline">Editar</button>
+                         <button onClick={() => setClientes(clientes.filter(c => c.id !== cli.id))} className="text-red-400 font-bold text-xs hover:underline">Excluir</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
         )}
 
       </main>

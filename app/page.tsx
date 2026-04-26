@@ -1,18 +1,85 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { createClient } from '@supabase/supabase-js';
+
+// ================= INICIALIZAÇÃO DO SUPABASE =================
+// Certifique-se de ter essas chaves no Vercel (Settings > Environment Variables)
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabase = createClient(supabaseUrl, supabaseKey);
+
+// ================= DADOS PADRÃO DO KANBAN =================
+const defaultKanbanCards = [
+  { titulo: 'CNPJ (JUCEPAR)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Inscrição Municipal', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Alvará Prefeitura', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'CRF-PR', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Anvisa (AFE)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'PGRSS', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Bombeiros', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Contratação RT', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Folha de Pagamento', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Treinamento Equipe', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Uniformes', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Escala de Trabalho', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '1. Desmobilização (Limpeza/Caçamba)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '2. Infra Bruta (Elétrica/Lógica/Drenos)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '3. Gesso / Forro (Recortes)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '4. Pintura e Massa Corrida', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '5. Fachada (ACM/Vidro/Iluminação)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '6. Climatização (Evaporadoras)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '7. Elétrica Fina (Tomadas/Luminárias)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '8. Instalação de Piso e Rodapé', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '9. Mobiliário (Gôndolas/Balcão/Caixa)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: '10. TI (Computadores/PDV/Impressoras)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Equipamentos', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Sistema (PDV)', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Estoque Inicial', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Fornecedores Base', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Tripasse', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Aluguel', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Contabilidade', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Fluxo de Caixa', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'Parcelamentos', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+];
 
 export default function Home() {
-  // ================= 1. ESTADOS FINANCEIROS =================
   const [saldoEmConta, setSaldoEmConta] = useState<string>('24000000');
   const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes'>('kanban');
 
-  // Lançamentos Zerados
+  // ================= ESTADOS CONECTADOS =================
   const [contasAPagar, setContasAPagar] = useState<any[]>([]);
+  const [clientes, setClientes] = useState<any[]>([]);
+  const [cards, setCards] = useState<any[]>([]);
 
-  // Adicionando 'status' com default 'Pagar'
+  // ================= BUSCA DE DADOS (SUPABASE) =================
+  useEffect(() => {
+    async function carregarDados() {
+      // Busca Contas
+      const { data: contasDB } = await supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true });
+      if (contasDB) setContasAPagar(contasDB);
+
+      // Busca Clientes
+      const { data: clientesDB } = await supabase.from('clientes').select('*').order('created_at', { ascending: false });
+      if (clientesDB) setClientes(clientesDB);
+
+      // Busca Kanban
+      const { data: cardsDB } = await supabase.from('kanban_cards').select('*');
+      if (cardsDB && cardsDB.length > 0) {
+        setCards(cardsDB);
+      } else {
+        // Se o banco estiver vazio (como agora), injeta os 28 cards iniciais direto no Supabase!
+        const { data: inseridos } = await supabase.from('kanban_cards').insert(defaultKanbanCards).select();
+        if (inseridos) setCards(inseridos);
+      }
+    }
+    carregarDados();
+  }, []);
+
+  // ================= LÓGICA FINANCEIRA =================
   const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
-  const [editandoId, setEditandoId] = useState<number | null>(null);
+  const [editandoId, setEditandoId] = useState<string | null>(null); // Supabase usa string (UUID)
   const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
 
   const maskCurrency = (value: string) => {
@@ -29,7 +96,7 @@ export default function Home() {
     return Number(value.replace(/\./g, '').replace(',', '.'));
   };
 
-  const salvarDespesa = (e: React.FormEvent) => {
+  const salvarDespesa = async (e: React.FormEvent) => {
     e.preventDefault();
     const numParcelas = parseInt(novaConta.parcelas) || 1;
     const novasParcelas = [];
@@ -41,33 +108,46 @@ export default function Home() {
       const dataString = dataVenc.toISOString().split('T')[0];
 
       novasParcelas.push({
-        id: Date.now() + i,
         descricao: numParcelas > 1 ? `${novaConta.descricao} (${i + 1}/${numParcelas})` : novaConta.descricao,
         vencimento: dataString,
-        valorStr: novaConta.valor.replace(/\D/g, ''),
-        valorNum: parseCurrency(maskCurrency(novaConta.valor)),
-        mesIndex: dataVenc.getMonth(),
-        status: novaConta.status // Salva o status escolhido
+        valor_str: novaConta.valor.replace(/\D/g, ''),
+        valor_num: parseCurrency(maskCurrency(novaConta.valor)),
+        mes_index: dataVenc.getMonth(),
+        status: novaConta.status
       });
     }
-    setContasAPagar([...contasAPagar, ...novasParcelas].sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
+
+    // ENVIA PARA O SUPABASE
+    const { data: inseridos, error } = await supabase.from('contas_pagar').insert(novasParcelas).select();
+    if (inseridos) {
+      setContasAPagar([...contasAPagar, ...inseridos].sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
+    }
     setNovaConta({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
   };
 
-  const confirmarEdicao = (id: number) => {
-    setContasAPagar(contasAPagar.map(c => {
-      if (c.id === id) {
-        const [ano, mes] = tempEdit.vencimento.split('-');
-        return { ...c, descricao: tempEdit.descricao, vencimento: tempEdit.vencimento, valorStr: tempEdit.valor.replace(/\D/g, ''), valorNum: parseCurrency(tempEdit.valor), mesIndex: parseInt(mes, 10) - 1, status: tempEdit.status };
-      }
-      return c;
-    }).sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
+  const confirmarEdicao = async (id: string) => {
+    const [ano, mes] = tempEdit.vencimento.split('-');
+    const updatedData = { 
+      descricao: tempEdit.descricao, 
+      vencimento: tempEdit.vencimento, 
+      valor_str: tempEdit.valor.replace(/\D/g, ''), 
+      valor_num: parseCurrency(tempEdit.valor), 
+      mes_index: parseInt(mes, 10) - 1, 
+      status: tempEdit.status 
+    };
+
+    // ATUALIZA NO SUPABASE
+    await supabase.from('contas_pagar').update(updatedData).eq('id', id);
+    setContasAPagar(contasAPagar.map(c => c.id === id ? { ...c, ...updatedData } : c).sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
     setEditandoId(null);
   };
 
-  const capital = parseCurrency(maskCurrency(saldoEmConta));
-  const somarMes = (mIdx: number) => contasAPagar.filter(c => c.mesIndex === mIdx).reduce((acc, curr) => acc + curr.valorNum, 0);
+  const excluirConta = async (id: string) => {
+    await supabase.from('contas_pagar').delete().eq('id', id);
+    setContasAPagar(contasAPagar.filter(c => c.id !== id));
+  };
 
+  const capital = parseCurrency(maskCurrency(saldoEmConta));
   const mesesInfo = [
     { nome: 'Maio', idx: 4 }, { nome: 'Junho', idx: 5 }, { nome: 'Julho', idx: 6 }, 
     { nome: 'Agosto', idx: 7 }, { nome: 'Setembro', idx: 8 }, { nome: 'Outubro', idx: 9 },
@@ -75,15 +155,14 @@ export default function Home() {
   ];
 
   let caixaAcumulado = capital;
-  const gastosPreMaio = contasAPagar.filter(c => c.mesIndex < 4).reduce((acc, curr) => acc + curr.valorNum, 0);
+  const gastosPreMaio = contasAPagar.filter(c => c.mes_index < 4).reduce((acc, curr) => acc + curr.valor_num, 0);
   caixaAcumulado -= gastosPreMaio;
 
   const projecao = mesesInfo.map((mesObj) => {
-    const detalhesMes = contasAPagar.filter(c => c.mesIndex === mesObj.idx);
+    const detalhesMes = contasAPagar.filter(c => c.mes_index === mesObj.idx);
     
-    // Divide os valores por status
-    const totalGastoRealNum = detalhesMes.filter(c => c.status !== 'Em orçamento').reduce((acc, curr) => acc + curr.valorNum, 0);
-    const totalOrcamentoNum = detalhesMes.filter(c => c.status === 'Em orçamento').reduce((acc, curr) => acc + curr.valorNum, 0);
+    const totalGastoRealNum = detalhesMes.filter(c => c.status !== 'Em orçamento').reduce((acc, curr) => acc + curr.valor_num, 0);
+    const totalOrcamentoNum = detalhesMes.filter(c => c.status === 'Em orçamento').reduce((acc, curr) => acc + curr.valor_num, 0);
     const totalSaidasMes = totalGastoRealNum + totalOrcamentoNum;
 
     caixaAcumulado -= totalSaidasMes;
@@ -99,82 +178,50 @@ export default function Home() {
     };
   });
 
-  // ================= 2. ESTADOS DE CLIENTES (CRM) =================
-  // Lista Zerada
-  const [clientes, setClientes] = useState<any[]>([]);
+  // ================= 2. LÓGICA CRM (SUPABASE) =================
   const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
-
-  // Estados para edição do Cliente habilitados
-  const [editandoCliId, setEditandoCliId] = useState<number | null>(null);
+  const [editandoCliId, setEditandoCliId] = useState<string | null>(null);
   const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
 
-  const salvarCliente = (e: React.FormEvent) => {
+  const salvarCliente = async (e: React.FormEvent) => {
     e.preventDefault();
-    setClientes([...clientes, { id: Date.now(), ...novoCliente }]);
+    const { data, error } = await supabase.from('clientes').insert([novoCliente]).select();
+    if (data) setClientes([...clientes, ...data]);
     setNovoCliente({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   };
 
-  const iniciarEdicaoCli = (cli: any) => {
-    setEditandoCliId(cli.id);
-    setTempEditCli({ nome: cli.nome, whatsapp: cli.whatsapp, compras: cli.compras, atendimento: cli.atendimento, tipo: cli.tipo });
-  };
-
-  const confirmarEdicaoCli = (id: number) => {
+  const confirmarEdicaoCli = async (id: string) => {
+    await supabase.from('clientes').update(tempEditCli).eq('id', id);
     setClientes(clientes.map(c => c.id === id ? { ...c, ...tempEditCli } : c));
     setEditandoCliId(null);
   };
 
-  // ================= 3. KANBAN 360º (BOARD PRINCIPAL) =================
+  const excluirCliente = async (id: string) => {
+    await supabase.from('clientes').delete().eq('id', id);
+    setClientes(clientes.filter(c => c.id !== id));
+  };
+
+  // ================= 3. LÓGICA KANBAN (SUPABASE) =================
   const colunasKanban = ['Backlog', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
   const [dataInauguracao, setDataInauguracao] = useState('');
 
-  // Kanban com as 28 tarefas fixas restauradas
-  const [cards, setCards] = useState([
-    // Administrativo
-    { id: 101, titulo: 'CNPJ (JUCEPAR)', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 102, titulo: 'Inscrição Municipal', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 103, titulo: 'Alvará Prefeitura', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 104, titulo: 'CRF-PR', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 105, titulo: 'Anvisa (AFE)', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 106, titulo: 'PGRSS', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 107, titulo: 'Bombeiros', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    // RH
-    { id: 201, titulo: 'Contratação RT', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 202, titulo: 'Folha de Pagamento', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 203, titulo: 'Treinamento Equipe', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 204, titulo: 'Uniformes', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 205, titulo: 'Escala de Trabalho', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    // Infraestrutura (Obra Física)
-    { id: 301, titulo: '1. Desmobilização (Limpeza/Caçamba)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 302, titulo: '2. Infra Bruta (Elétrica/Lógica/Drenos)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 303, titulo: '3. Gesso / Forro (Recortes)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 304, titulo: '4. Pintura e Massa Corrida', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 305, titulo: '5. Fachada (ACM/Vidro/Iluminação)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 306, titulo: '6. Climatização (Evaporadoras)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 307, titulo: '7. Elétrica Fina (Tomadas/Luminárias)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 308, titulo: '8. Instalação de Piso e Rodapé', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 309, titulo: '9. Mobiliário (Gôndolas/Balcão/Caixa)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 310, titulo: '10. TI (Computadores/PDV/Impressoras)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    // Suprimentos
-    { id: 401, titulo: 'Equipamentos', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 402, titulo: 'Sistema (PDV)', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 403, titulo: 'Estoque Inicial', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 404, titulo: 'Fornecedores Base', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    // Financeiro
-    { id: 501, titulo: 'Tripasse', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 502, titulo: 'Aluguel', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 503, titulo: 'Contabilidade', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 504, titulo: 'Fluxo de Caixa', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-    { id: 505, titulo: 'Parcelamentos', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
-  ]);
-
-  const adicionarCard = (status: string) => {
-    setCards([...cards, { id: Date.now(), titulo: 'Nova Tarefa', area: 'Infraestrutura', inicio: '', fim: '', status, bloqueado: false }]);
+  const adicionarCard = async (area: string) => {
+    const novoCard = { titulo: 'Nova Tarefa', area, inicio: null, fim: null, status: 'A Fazer', bloqueado: false };
+    const { data } = await supabase.from('kanban_cards').insert([novoCard]).select();
+    if (data) setCards([...cards, ...data]);
   };
 
-  const atualizarCard = (id: number, campo: string, valor: string | boolean) => {
+  const atualizarCard = async (id: string, campo: string, valor: any) => {
+    // Atualiza otimista na tela
     setCards(cards.map(c => c.id === id ? { ...c, [campo]: valor } : c));
+    // Salva no banco de dados em segundo plano
+    await supabase.from('kanban_cards').update({ [campo]: valor }).eq('id', id);
+  };
+
+  const excluirCard = async (id: string) => {
+    await supabase.from('kanban_cards').delete().eq('id', id);
+    setCards(cards.filter(c => c.id !== id));
   };
 
   const getTagColor = (area: string) => {
@@ -188,7 +235,6 @@ export default function Home() {
     }
   };
 
-  // Semáforo do Kanban
   const totalCards = cards.length;
   const concluidosCards = cards.filter(c => c.status === 'Concluído').length;
   const progressoGeral = totalCards === 0 ? 0 : Math.round((concluidosCards / totalCards) * 100);
@@ -211,7 +257,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-10 text-slate-800">
       
-      {/* CABEÇALHO */}
       <header className="bg-[#009e90] text-white p-4 shadow-md flex justify-between items-center border-b-4 border-[#e8601c]">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Painel de Transição - Associadas</h1>
@@ -219,7 +264,6 @@ export default function Home() {
         </div>
       </header>
 
-      {/* NAVEGAÇÃO ESTILO YELLOWLEAF CRM */}
       <div className="bg-white border-b border-slate-200 px-6 py-3 flex space-x-4 shadow-sm overflow-x-auto">
         <button onClick={() => setAbaAtiva('kanban')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📋</span> BOARD OPERACIONAL</button>
         <button onClick={() => setAbaAtiva('contas')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
@@ -228,7 +272,6 @@ export default function Home() {
 
       <main className="flex-1 p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
         
-        {/* RESUMO SIMPLIFICADO NO TOPO */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-[#eaf8f1] p-5 rounded-2xl border border-[#009e90]/30 shadow-sm">
               <p className="text-[10px] text-[#009e90] font-bold uppercase mb-1">Saldo Base (240k)</p>
@@ -238,7 +281,7 @@ export default function Home() {
               </div>
             </div>
             {projecao.slice(0, 3).map((p, idx) => (
-              <div key={idx} className="bg-white p-5 rounded-2xl border border-[#e8601c]/20 shadow-sm relative overflow-hidden">
+              <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                 <div className={`absolute top-0 left-0 w-1 h-full ${p.totalGastoRealNum > 0 ? 'bg-red-400' : p.totalOrcamentoNum > 0 ? 'bg-blue-400' : 'bg-[#e8601c]/50'}`}></div>
                 <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Previsão em {p.nome}</p>
                 <div className='flex gap-3'>
@@ -256,10 +299,9 @@ export default function Home() {
             ))}
         </div>
 
-        {/* ================= ABA 1: BOARD OPERACIONAL (KANBAN) ================= */}
+        {/* KANBAN */}
         {abaAtiva === 'kanban' && (
           <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
-            
             <div className="flex flex-wrap justify-between items-center mb-6 border-b pb-4 border-[#009e90]">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Board Principal de Implantação (Por Setores)</h2>
@@ -310,8 +352,8 @@ export default function Home() {
                            rows={2}
                         />
                         <div className="grid grid-cols-2 gap-2 mt-3">
-                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b outline-none"/></div>
-                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b outline-none"/></div>
+                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio || ''} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b outline-none"/></div>
+                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim || ''} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b outline-none"/></div>
                         </div>
                         <div className="flex justify-between items-center mt-3">
                           <select 
@@ -325,7 +367,7 @@ export default function Home() {
                             <option value="Aguardando terceiros">Aguardando terceiros</option>
                             <option value="Concluído">Concluído</option>
                           </select>
-                          {!card.bloqueado && <button onClick={() => setCards(cards.filter(c => c.id !== card.id))} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
+                          {!card.bloqueado && <button onClick={() => excluirCard(card.id)} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
                         </div>
                       </div>
                     ))}
@@ -342,7 +384,7 @@ export default function Home() {
           </section>
         )}
 
-        {/* ================= ABA 2: CONTAS A PAGAR ================= */}
+        {/* CONTAS A PAGAR */}
         {abaAtiva === 'contas' && (
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
@@ -418,7 +460,7 @@ export default function Home() {
                       <td className="px-6 py-3 text-right">
                         {editandoId === conta.id ? 
                           <input type="text" value={tempEdit.valor} onChange={(e) => setTempEdit({...tempEdit, valor: maskCurrency(e.target.value)})} className="border rounded p-1.5 text-right text-xs font-bold outline-none focus:border-[#009e90]" /> : 
-                          <span className={`font-black ${conta.status === 'Em orçamento' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(conta.valorStr)}</span>
+                          <span className={`font-black ${conta.status === 'Em orçamento' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(conta.valor_str)}</span>
                         }
                       </td>
                       <td className="px-6 py-3 text-center space-x-3">
@@ -429,8 +471,8 @@ export default function Home() {
                           </>
                         ) : (
                           <>
-                            <button onClick={() => { setEditandoId(conta.id); setTempEdit({ descricao: conta.descricao, vencimento: conta.vencimento, valor: maskCurrency(conta.valorStr), status: conta.status || 'Pagar' }); }} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Editar</button>
-                            <button onClick={() => setContasAPagar(contasAPagar.filter(c => c.id !== conta.id))} className="text-red-400 font-bold text-xs uppercase hover:underline">Excluir</button>
+                            <button onClick={() => { setEditandoId(conta.id); setTempEdit({ descricao: conta.descricao, vencimento: conta.vencimento, valor: maskCurrency(conta.valor_str), status: conta.status || 'Pagar' }); }} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Editar</button>
+                            <button onClick={() => excluirConta(conta.id)} className="text-red-400 font-bold text-xs uppercase hover:underline">Excluir</button>
                           </>
                         )}
                       </td>
@@ -456,7 +498,7 @@ export default function Home() {
                           <div className='mb-2 border-b pb-1 border-slate-100'>
                             <p className='text-[9px] font-bold text-red-500 mb-1 uppercase'>Saídas Reais</p>
                             {p.detalhesGastoReal.map((c: any) => (
-                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-slate-800">R$ {maskCurrency(c.valorStr)}</span></div>
+                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-slate-800">R$ {maskCurrency(c.valor_str)}</span></div>
                             ))}
                           </div>
                         )}
@@ -464,7 +506,7 @@ export default function Home() {
                           <div className='border-b border-slate-100 pb-1'>
                             <p className='text-[9px] font-bold text-blue-500 mb-1 uppercase'>Em Orçamento</p>
                             {p.detalhesOrcamento.map((c: any) => (
-                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-blue-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-blue-800">R$ {maskCurrency(c.valorStr)}</span></div>
+                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-blue-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-blue-800">R$ {maskCurrency(c.valor_str)}</span></div>
                             ))}
                           </div>
                         )}
@@ -483,7 +525,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ================= ABA 3: GESTÃO DE CLIENTES ================= */}
+        {/* CLIENTES CRM */}
         {abaAtiva === 'clientes' && (
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
@@ -538,7 +580,7 @@ export default function Home() {
                       </div>
                       <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between">
                          <button onClick={() => iniciarEdicaoCli(cli)} className="text-[#009e90] font-bold text-xs hover:underline">Editar</button>
-                         <button onClick={() => setClientes(clientes.filter(c => c.id !== cli.id))} className="text-red-400 font-bold text-xs hover:underline">Excluir</button>
+                         <button onClick={() => excluirCliente(cli.id)} className="text-red-400 font-bold text-xs hover:underline">Excluir</button>
                       </div>
                     </>
                   )}

@@ -4,7 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // ================= INICIALIZAÇÃO DO SUPABASE =================
-// Certifique-se de ter essas chaves no Vercel (Settings > Environment Variables)
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
 const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
@@ -69,7 +68,6 @@ export default function Home() {
       if (cardsDB && cardsDB.length > 0) {
         setCards(cardsDB);
       } else {
-        // Se o banco estiver vazio (como agora), injeta os 28 cards iniciais direto no Supabase!
         const { data: inseridos } = await supabase.from('kanban_cards').insert(defaultKanbanCards).select();
         if (inseridos) setCards(inseridos);
       }
@@ -79,7 +77,7 @@ export default function Home() {
 
   // ================= LÓGICA FINANCEIRA =================
   const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
-  const [editandoId, setEditandoId] = useState<string | null>(null); // Supabase usa string (UUID)
+  const [editandoId, setEditandoId] = useState<string | null>(null);
   const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
 
   const maskCurrency = (value: string) => {
@@ -117,8 +115,7 @@ export default function Home() {
       });
     }
 
-    // ENVIA PARA O SUPABASE
-    const { data: inseridos, error } = await supabase.from('contas_pagar').insert(novasParcelas).select();
+    const { data: inseridos } = await supabase.from('contas_pagar').insert(novasParcelas).select();
     if (inseridos) {
       setContasAPagar([...contasAPagar, ...inseridos].sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
     }
@@ -136,7 +133,6 @@ export default function Home() {
       status: tempEdit.status 
     };
 
-    // ATUALIZA NO SUPABASE
     await supabase.from('contas_pagar').update(updatedData).eq('id', id);
     setContasAPagar(contasAPagar.map(c => c.id === id ? { ...c, ...updatedData } : c).sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
     setEditandoId(null);
@@ -185,9 +181,15 @@ export default function Home() {
 
   const salvarCliente = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data, error } = await supabase.from('clientes').insert([novoCliente]).select();
+    const { data } = await supabase.from('clientes').insert([novoCliente]).select();
     if (data) setClientes([...clientes, ...data]);
     setNovoCliente({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
+  };
+
+  // ESTA É A FUNÇÃO QUE FALTAVA E ESTAVA DANDO ERRO NO VERCEL
+  const iniciarEdicaoCli = (cli: any) => {
+    setEditandoCliId(cli.id);
+    setTempEditCli({ nome: cli.nome, whatsapp: cli.whatsapp, compras: cli.compras, atendimento: cli.atendimento, tipo: cli.tipo });
   };
 
   const confirmarEdicaoCli = async (id: string) => {
@@ -213,9 +215,7 @@ export default function Home() {
   };
 
   const atualizarCard = async (id: string, campo: string, valor: any) => {
-    // Atualiza otimista na tela
     setCards(cards.map(c => c.id === id ? { ...c, [campo]: valor } : c));
-    // Salva no banco de dados em segundo plano
     await supabase.from('kanban_cards').update({ [campo]: valor }).eq('id', id);
   };
 

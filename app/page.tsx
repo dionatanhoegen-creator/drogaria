@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 export default function Home() {
   // ================= 1. ESTADOS FINANCEIROS =================
   const [saldoEmConta, setSaldoEmConta] = useState<string>('24000000');
-  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes' | 'ia'>('kanban');
+  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes'>('kanban');
 
   // Lançamentos Zerados
   const [contasAPagar, setContasAPagar] = useState<any[]>([]);
@@ -87,7 +87,7 @@ export default function Home() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
 
-  // Estados para edição do Cliente
+  // Estados para edição do Cliente habilitados
   const [editandoCliId, setEditandoCliId] = useState<number | null>(null);
   const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
 
@@ -112,11 +112,52 @@ export default function Home() {
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
   const [dataInauguracao, setDataInauguracao] = useState('');
 
-  // Kanban Zerado
-  const [cards, setCards] = useState<any[]>([]);
+  // Kanban com as 28 tarefas fixas restauradas
+  const [cards, setCards] = useState([
+    // Administrativo
+    { id: 101, titulo: 'CNPJ (JUCEPAR)', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 102, titulo: 'Inscrição Municipal', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 103, titulo: 'Alvará Prefeitura', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 104, titulo: 'CRF-PR', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 105, titulo: 'Anvisa (AFE)', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 106, titulo: 'PGRSS', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 107, titulo: 'Bombeiros', area: 'Administrativo', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    // RH
+    { id: 201, titulo: 'Contratação RT', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 202, titulo: 'Folha de Pagamento', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 203, titulo: 'Treinamento Equipe', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 204, titulo: 'Uniformes', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 205, titulo: 'Escala de Trabalho', area: 'RH', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    // Infraestrutura (Obra Física)
+    { id: 301, titulo: '1. Desmobilização (Limpeza/Caçamba)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 302, titulo: '2. Infra Bruta (Elétrica/Lógica/Drenos)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 303, titulo: '3. Gesso / Forro (Recortes)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 304, titulo: '4. Pintura e Massa Corrida', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 305, titulo: '5. Fachada (ACM/Vidro/Iluminação)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 306, titulo: '6. Climatização (Evaporadoras)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 307, titulo: '7. Elétrica Fina (Tomadas/Luminárias)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 308, titulo: '8. Instalação de Piso e Rodapé', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 309, titulo: '9. Mobiliário (Gôndolas/Balcão/Caixa)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 310, titulo: '10. TI (Computadores/PDV/Impressoras)', area: 'Infraestrutura', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    // Suprimentos
+    { id: 401, titulo: 'Equipamentos', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 402, titulo: 'Sistema (PDV)', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 403, titulo: 'Estoque Inicial', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 404, titulo: 'Fornecedores Base', area: 'Suprimentos', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    // Financeiro
+    { id: 501, titulo: 'Tripasse', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 502, titulo: 'Aluguel', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 503, titulo: 'Contabilidade', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 504, titulo: 'Fluxo de Caixa', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+    { id: 505, titulo: 'Parcelamentos', area: 'Financeiro', inicio: '', fim: '', status: 'A Fazer', bloqueado: false },
+  ]);
 
   const adicionarCard = (status: string) => {
-    setCards([...cards, { id: Date.now(), titulo: 'Nova Tarefa', area: 'Infraestrutura', status, bloqueado: false }]);
+    setCards([...cards, { id: Date.now(), titulo: 'Nova Tarefa', area: 'Infraestrutura', inicio: '', fim: '', status, bloqueado: false }]);
+  };
+
+  const atualizarCard = (id: number, campo: string, valor: string | boolean) => {
+    setCards(cards.map(c => c.id === id ? { ...c, [campo]: valor } : c));
   };
 
   const getTagColor = (area: string) => {
@@ -129,6 +170,26 @@ export default function Home() {
       default: return 'bg-slate-100 text-slate-700';
     }
   };
+
+  // Semáforo do Kanban
+  const totalCards = cards.length;
+  const concluidosCards = cards.filter(c => c.status === 'Concluído').length;
+  const progressoGeral = totalCards === 0 ? 0 : Math.round((concluidosCards / totalCards) * 100);
+
+  let semaforo = { cor: 'bg-slate-200 text-slate-700', texto: 'Inauguração: Sem Data' };
+  if (dataInauguracao) {
+    const hoje = new Date();
+    const dataMeta = new Date(dataInauguracao + 'T23:59:59');
+    const temAtraso = cards.some(c => c.fim && new Date(c.fim + 'T23:59:59') < hoje && c.status !== 'Concluído');
+    
+    if (progressoGeral === 100) {
+      semaforo = { cor: 'bg-green-500 text-white', texto: 'Pronto para Inaugurar!' };
+    } else if (temAtraso || (hoje > dataMeta && progressoGeral < 100)) {
+      semaforo = { cor: 'bg-red-500 text-white', texto: 'Atrasos Detectados (Crítico)' };
+    } else {
+      semaforo = { cor: 'bg-yellow-500 text-white', texto: 'Operação no Prazo' };
+    }
+  }
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-10 text-slate-800">
@@ -170,33 +231,87 @@ export default function Home() {
 
         {/* ================= ABA 1: BOARD OPERACIONAL (KANBAN) ================= */}
         {abaAtiva === 'kanban' && (
-          <section className="flex gap-4 overflow-x-auto pb-6 items-start h-full">
-            {colunasKanban.map(coluna => (
-              <div key={coluna} className="min-w-[320px] flex-1 bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-inner">
-                
-                <h3 className="font-bold text-white bg-[#009e90] px-4 py-3 rounded-xl mb-4 flex justify-between items-center shadow-md">
-                  {coluna}
-                  <span className="bg-white text-[#009e90] rounded-full px-2.5 py-0.5 text-[10px] font-black shadow-sm">
-                    {cards.filter(c => c.status === coluna).length}
-                  </span>
-                </h3>
-
-                {cards.filter(c => c.status === coluna).map(card => (
-                  <div key={card.id} className="bg-white p-4 rounded-xl shadow-sm border-l-4 border-l-[#e8601c] border-y border-r border-slate-200 mb-3 group transition-all hover:border-[#009e90] hover:shadow-md">
-                    <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${getTagColor(card.area)}`}>{card.area}</span>
-                    <p className="font-bold text-sm mt-2 text-slate-800">{card.titulo}</p>
-                    <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-100">
-                       <button className="text-[10px] text-slate-500 hover:text-[#e8601c] font-bold transition-colors">📅 Definir Prazo</button>
-                       <button onClick={() => setCards(cards.map(c => c.id === card.id ? {...c, status: 'Concluído'} : c))} className="text-[10px] text-white bg-[#009e90] px-3 py-1.5 rounded-full font-bold hover:bg-[#007a6f] transition-colors shadow-sm">✓ Finalizar</button>
-                    </div>
-                  </div>
-                ))}
-                
-                <button onClick={() => adicionarCard(coluna)} className="w-full mt-2 py-3 border-2 border-dashed border-[#009e90]/40 rounded-xl text-[#009e90] text-xs font-bold hover:bg-[#eaf8f1] transition-all">
-                  + Nova Tarefa
-                </button>
+          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
+            
+            <div className="flex flex-wrap justify-between items-center mb-6 border-b pb-4 border-[#009e90]">
+              <div>
+                <h2 className="text-lg font-bold text-slate-800">Board Principal de Implantação (Por Setores)</h2>
+                <p className="text-xs text-slate-500 mt-1">Gerencie a obra, burocracia, RH e finanças em colunas separadas.</p>
               </div>
-            ))}
+              <div className="flex gap-4 items-center">
+                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase">Meta de Inauguração:</label>
+                  <input type="date" value={dataInauguracao} onChange={(e) => setDataInauguracao(e.target.value)} className="text-sm bg-transparent font-black outline-none text-[#009e90]" />
+                </div>
+                <div className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm ${semaforo.cor}`}>
+                  {semaforo.texto}
+                </div>
+              </div>
+            </div>
+
+            <div className="mb-6 flex items-center gap-4">
+              <span className="text-xs font-bold text-slate-500 uppercase w-32">Progresso Global</span>
+              <div className="flex-1 bg-slate-100 rounded-full h-3 border border-slate-200 overflow-hidden">
+                <div className="bg-[#009e90] h-full transition-all duration-500" style={{ width: `${progressoGeral}%` }}></div>
+              </div>
+              <span className="text-sm font-black text-[#009e90]">{progressoGeral}%</span>
+            </div>
+
+            <div className="flex gap-4 overflow-x-auto pb-4 items-start">
+              {tagsSetores.map(coluna => (
+                <div key={coluna} className="flex-1 min-w-[320px] bg-slate-50 rounded-2xl border border-slate-200 shadow-inner flex flex-col max-h-[750px]">
+                  
+                  <h3 className="font-bold text-white bg-[#009e90] px-4 py-3 rounded-t-xl flex justify-between items-center shadow-md">
+                    {coluna}
+                    <span className="bg-white text-[#009e90] rounded-full px-2.5 py-0.5 text-[10px] font-black shadow-sm">
+                      {cards.filter(c => c.area === coluna).length}
+                    </span>
+                  </h3>
+                  
+                  <div className="overflow-y-auto p-3 flex-1 space-y-3">
+                    {cards.filter(c => c.area === coluna).map(card => (
+                      <div key={card.id} className={`p-4 rounded-xl shadow-sm border-l-4 border-l-[#e8601c] border-y border-r border-slate-200 bg-white transition-all hover:shadow-md`}>
+                        <div className="flex justify-between items-start mb-2">
+                           <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${getTagColor(card.area)}`}>{card.area}</span>
+                           <button onClick={() => atualizarCard(card.id, 'bloqueado', !card.bloqueado)} className="text-slate-400">{card.bloqueado ? '🔒' : '🔓'}</button>
+                        </div>
+                        <textarea 
+                           disabled={card.bloqueado}
+                           value={card.titulo} 
+                           onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
+                           className="font-bold text-sm w-full bg-transparent resize-none outline-none border-b border-transparent focus:border-[#009e90]" 
+                           rows={2}
+                        />
+                        <div className="grid grid-cols-2 gap-2 mt-3">
+                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b outline-none"/></div>
+                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b outline-none"/></div>
+                        </div>
+                        <div className="flex justify-between items-center mt-3">
+                          <select 
+                             disabled={card.bloqueado}
+                             value={card.status} 
+                             onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
+                             className={`text-[10px] font-bold bg-slate-50 p-1.5 rounded border outline-none cursor-pointer ${card.status === 'Concluído' ? 'text-[#009e90]' : 'text-slate-600'}`}
+                          >
+                            <option value="A Fazer">A Fazer</option>
+                            <option value="Em andamento">Em andamento</option>
+                            <option value="Aguardando terceiros">Aguardando terceiros</option>
+                            <option value="Concluído">Concluído</option>
+                          </select>
+                          {!card.bloqueado && <button onClick={() => setCards(cards.filter(c => c.id !== card.id))} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="p-3 border-t border-slate-200 bg-white rounded-b-2xl">
+                    <button onClick={() => adicionarCard(coluna)} className="w-full py-2 text-xs font-bold text-[#e8601c] bg-[#e8601c]/10 hover:bg-[#e8601c]/20 rounded-xl transition-all">
+                      + Criar Post-it
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
           </section>
         )}
 
@@ -330,7 +445,7 @@ export default function Home() {
             </section>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {clientes.length === 0 && <p className="text-slate-400 text-sm italic col-span-full">Nenhum cliente cadastrado no momento.</p>}
+              {clientes.length === 0 && <p className="text-slate-400 text-sm italic col-span-full text-center">Nenhum cliente cadastrado no momento.</p>}
               {clientes.map(cli => (
                 <div key={cli.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col group hover:border-[#009e90] transition-all">
                   
@@ -350,7 +465,7 @@ export default function Home() {
                     <>
                       <div className="flex justify-between items-start mb-3 border-b pb-3 border-slate-100">
                         <h3 className="font-black text-[#009e90] text-lg">{cli.nome}</h3>
-                        {/* LINK DO WHATSAPP CORRIGIDO (TAG A) */}
+                        {/* A TAG <a href="..."> RESOLVE O BUG DO WHATSAPP */}
                         <a 
                           href={`https://wa.me/55${cli.whatsapp.replace(/\D/g,'')}`} 
                           target="_blank" 

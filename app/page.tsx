@@ -10,9 +10,10 @@ export default function Home() {
   // Lançamentos Zerados
   const [contasAPagar, setContasAPagar] = useState<any[]>([]);
 
-  const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1' });
+  // Adicionando 'status' com default 'Pagar'
+  const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
   const [editandoId, setEditandoId] = useState<number | null>(null);
-  const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '' });
+  const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
 
   const maskCurrency = (value: string) => {
     let v = value.replace(/\D/g, ''); 
@@ -45,18 +46,19 @@ export default function Home() {
         vencimento: dataString,
         valorStr: novaConta.valor.replace(/\D/g, ''),
         valorNum: parseCurrency(maskCurrency(novaConta.valor)),
-        mesIndex: dataVenc.getMonth()
+        mesIndex: dataVenc.getMonth(),
+        status: novaConta.status // Salva o status escolhido
       });
     }
     setContasAPagar([...contasAPagar, ...novasParcelas].sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
-    setNovaConta({ descricao: '', vencimento: '', valor: '', parcelas: '1' });
+    setNovaConta({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
   };
 
   const confirmarEdicao = (id: number) => {
     setContasAPagar(contasAPagar.map(c => {
       if (c.id === id) {
         const [ano, mes] = tempEdit.vencimento.split('-');
-        return { ...c, descricao: tempEdit.descricao, vencimento: tempEdit.vencimento, valorStr: tempEdit.valor.replace(/\D/g, ''), valorNum: parseCurrency(tempEdit.valor), mesIndex: parseInt(mes, 10) - 1 };
+        return { ...c, descricao: tempEdit.descricao, vencimento: tempEdit.vencimento, valorStr: tempEdit.valor.replace(/\D/g, ''), valorNum: parseCurrency(tempEdit.valor), mesIndex: parseInt(mes, 10) - 1, status: tempEdit.status };
       }
       return c;
     }).sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
@@ -77,9 +79,24 @@ export default function Home() {
   caixaAcumulado -= gastosPreMaio;
 
   const projecao = mesesInfo.map((mesObj) => {
-    const totalMes = somarMes(mesObj.idx);
-    caixaAcumulado -= totalMes;
-    return { ...mesObj, totalMes, saldoFinal: caixaAcumulado, detalhes: contasAPagar.filter(c => c.mesIndex === mesObj.idx) };
+    const detalhesMes = contasAPagar.filter(c => c.mesIndex === mesObj.idx);
+    
+    // Divide os valores por status
+    const totalGastoRealNum = detalhesMes.filter(c => c.status !== 'Em orçamento').reduce((acc, curr) => acc + curr.valorNum, 0);
+    const totalOrcamentoNum = detalhesMes.filter(c => c.status === 'Em orçamento').reduce((acc, curr) => acc + curr.valorNum, 0);
+    const totalSaidasMes = totalGastoRealNum + totalOrcamentoNum;
+
+    caixaAcumulado -= totalSaidasMes;
+    
+    return { 
+      ...mesObj, 
+      totalSaidasMes,
+      totalGastoRealNum,
+      totalOrcamentoNum,
+      saldoFinal: caixaAcumulado, 
+      detalhesGastoReal: detalhesMes.filter(c => c.status !== 'Em orçamento'),
+      detalhesOrcamento: detalhesMes.filter(c => c.status === 'Em orçamento')
+    };
   });
 
   // ================= 2. ESTADOS DE CLIENTES (CRM) =================
@@ -222,9 +239,19 @@ export default function Home() {
             </div>
             {projecao.slice(0, 3).map((p, idx) => (
               <div key={idx} className="bg-white p-5 rounded-2xl border border-[#e8601c]/20 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-1 h-full bg-[#e8601c]/50"></div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Pagar em {p.nome}</p>
-                <p className="text-2xl font-black text-[#e8601c]">R$ {maskCurrency((p.totalMes * 100).toString())}</p>
+                <div className={`absolute top-0 left-0 w-1 h-full ${p.totalGastoRealNum > 0 ? 'bg-red-400' : p.totalOrcamentoNum > 0 ? 'bg-blue-400' : 'bg-[#e8601c]/50'}`}></div>
+                <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Previsão em {p.nome}</p>
+                <div className='flex gap-3'>
+                  {p.totalGastoRealNum > 0 && (
+                     <p className="text-xl font-bold text-red-600">R$ {maskCurrency((p.totalGastoRealNum * 100).toString())} <span className="text-[10px] text-red-400">(Real)</span></p>
+                  )}
+                  {p.totalOrcamentoNum > 0 && (
+                     <p className="text-xl font-bold text-blue-600">R$ {maskCurrency((p.totalOrcamentoNum * 100).toString())} <span className="text-[10px] text-blue-400">(Orç)</span></p>
+                  )}
+                  {p.totalSaidasMes === 0 && (
+                     <p className="text-2xl font-black text-[#e8601c]">R$ 0,00</p>
+                  )}
+                </div>
               </div>
             ))}
         </div>
@@ -259,7 +286,7 @@ export default function Home() {
 
             <div className="flex gap-4 overflow-x-auto pb-4 items-start">
               {tagsSetores.map(coluna => (
-                <div key={coluna} className="flex-1 min-w-[320px] bg-slate-50 rounded-2xl border border-slate-200 shadow-inner flex flex-col max-h-[750px]">
+                <div key={coluna} className="flex-1 min-w-[320px] bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-inner flex flex-col max-h-[750px]">
                   
                   <h3 className="font-bold text-white bg-[#009e90] px-4 py-3 rounded-t-xl flex justify-between items-center shadow-md">
                     {coluna}
@@ -320,7 +347,7 @@ export default function Home() {
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90] text-[#009e90]">Novo Lançamento Financeiro</h2>
-              <form onSubmit={salvarDespesa} className="grid grid-cols-1 md:grid-cols-5 gap-4 items-end">
+              <form onSubmit={salvarDespesa} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Descrição</label>
                   <input type="text" value={novaConta.descricao} onChange={(e) => setNovaConta({...novaConta, descricao: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm outline-none focus:border-[#009e90]" placeholder="Ex: Conta de Luz, RT, Fornecedor..." required />
@@ -333,10 +360,14 @@ export default function Home() {
                   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Valor (R$)</label>
                   <input type="text" value={maskCurrency(novaConta.valor)} onChange={(e) => setNovaConta({...novaConta, valor: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm text-right font-bold outline-none focus:border-[#009e90]" placeholder="0,00" required />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nº Parcelas</label>
+                <div className="md:col-span-2">
+                  <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Nº Parc / Status</label>
                   <div className="flex gap-2">
-                    <input type="number" min="1" max="48" value={novaConta.parcelas} onChange={(e) => setNovaConta({...novaConta, parcelas: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm text-center outline-none focus:border-[#009e90]" />
+                    <input type="number" min="1" max="48" value={novaConta.parcelas} onChange={(e) => setNovaConta({...novaConta, parcelas: e.target.value})} className="w-16 border rounded-xl p-2.5 text-sm text-center outline-none focus:border-[#009e90]" />
+                    <select value={novaConta.status} onChange={(e) => setNovaConta({...novaConta, status: e.target.value})} className="flex-1 border rounded-xl p-2.5 text-[10px] font-bold outline-none focus:border-[#009e90]">
+                      <option value="Pagar">Gasto Real (Vermelho)</option>
+                      <option value="Em orçamento">Em orçamento (Azul)</option>
+                    </select>
                     <button type="submit" className="bg-[#e8601c] hover:bg-[#d05315] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all">SALVAR</button>
                   </div>
                 </div>
@@ -349,13 +380,14 @@ export default function Home() {
                   <tr>
                     <th className="px-6 py-4">Vencimento</th>
                     <th className="px-6 py-4">Descrição da Despesa</th>
+                    <th className="px-6 py-4">Status</th>
                     <th className="px-6 py-4 text-right">Valor (R$)</th>
                     <th className="px-6 py-4 text-center">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {contasAPagar.length === 0 && (
-                    <tr><td colSpan={4} className="p-4 text-center text-slate-400 italic">Nenhum lançamento efetuado.</td></tr>
+                    <tr><td colSpan={5} className="p-4 text-center text-slate-400 italic">Nenhum lançamento efetuado.</td></tr>
                   )}
                   {contasAPagar.map((conta) => (
                     <tr key={conta.id} className="hover:bg-slate-50 transition-all">
@@ -371,10 +403,22 @@ export default function Home() {
                           <span className="font-bold text-slate-800">{conta.descricao}</span>
                         }
                       </td>
+                      <td className="px-6 py-3">
+                        {editandoId === conta.id ? (
+                           <select value={tempEdit.status} onChange={(e) => setTempEdit({...tempEdit, status: e.target.value})} className="text-[10px] font-bold border rounded p-1 outline-none">
+                              <option value="Pagar">Pagar</option>
+                              <option value="Em orçamento">Em orçamento</option>
+                           </select>
+                        ) : (
+                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${conta.status === 'Em orçamento' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                            {conta.status}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-6 py-3 text-right">
                         {editandoId === conta.id ? 
                           <input type="text" value={tempEdit.valor} onChange={(e) => setTempEdit({...tempEdit, valor: maskCurrency(e.target.value)})} className="border rounded p-1.5 text-right text-xs font-bold outline-none focus:border-[#009e90]" /> : 
-                          <span className="font-black text-[#e8601c]">R$ {maskCurrency(conta.valorStr)}</span>
+                          <span className={`font-black ${conta.status === 'Em orçamento' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(conta.valorStr)}</span>
                         }
                       </td>
                       <td className="px-6 py-3 text-center space-x-3">
@@ -385,7 +429,7 @@ export default function Home() {
                           </>
                         ) : (
                           <>
-                            <button onClick={() => { setEditandoId(conta.id); setTempEdit({ descricao: conta.descricao, vencimento: conta.vencimento, valor: maskCurrency(conta.valorStr) }); }} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Editar</button>
+                            <button onClick={() => { setEditandoId(conta.id); setTempEdit({ descricao: conta.descricao, vencimento: conta.vencimento, valor: maskCurrency(conta.valorStr), status: conta.status || 'Pagar' }); }} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Editar</button>
                             <button onClick={() => setContasAPagar(contasAPagar.filter(c => c.id !== conta.id))} className="text-red-400 font-bold text-xs uppercase hover:underline">Excluir</button>
                           </>
                         )}
@@ -402,19 +446,29 @@ export default function Home() {
                   <div key={p.idx} className={`w-64 bg-white p-5 rounded-2xl border shadow-sm flex flex-col ${p.saldoFinal < 0 ? 'bg-red-50 border-red-200' : 'border-slate-200'}`}>
                     <div className="flex justify-between items-center border-b pb-2 mb-3 border-slate-100">
                       <span className="font-black text-[#009e90] text-lg">{p.nome}</span>
-                      <span className="text-[10px] bg-[#e8601c]/10 text-[#e8601c] px-2 py-1 rounded-lg font-bold">Saída R$ {maskCurrency((p.totalMes * 100).toString())}</span>
+                      <span className="text-[10px] bg-[#e8601c]/10 text-[#e8601c] px-2 py-1 rounded-lg font-bold">Saída R$ {maskCurrency((p.totalSaidasMes * 100).toString())}</span>
                     </div>
                     
                     <details className="group mb-4 flex-1">
                       <summary className="text-[11px] text-[#e8601c] font-bold cursor-pointer hover:underline outline-none mb-2">Ver Relação Lançada ▾</summary>
-                      <div className="space-y-2 mt-2 max-h-32 overflow-y-auto pr-1 border-l-2 border-slate-100 pl-2">
-                        {p.detalhes.map(c => (
-                          <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600">
-                            <span className="truncate w-32">{c.descricao}</span>
-                            <span className="font-bold text-slate-800">R$ {maskCurrency(c.valorStr)}</span>
+                      <div className="space-y-1.5 mt-2 h-32 overflow-y-auto pr-1 border-l-2 border-slate-100 pl-2">
+                        {p.detalhesGastoReal.length > 0 && (
+                          <div className='mb-2 border-b pb-1 border-slate-100'>
+                            <p className='text-[9px] font-bold text-red-500 mb-1 uppercase'>Saídas Reais</p>
+                            {p.detalhesGastoReal.map((c: any) => (
+                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-slate-800">R$ {maskCurrency(c.valorStr)}</span></div>
+                            ))}
                           </div>
-                        ))}
-                        {p.detalhes.length === 0 && <span className="text-[10px] italic text-slate-400">Sem contas lançadas neste mês.</span>}
+                        )}
+                        {p.detalhesOrcamento.length > 0 && (
+                          <div className='border-b border-slate-100 pb-1'>
+                            <p className='text-[9px] font-bold text-blue-500 mb-1 uppercase'>Em Orçamento</p>
+                            {p.detalhesOrcamento.map((c: any) => (
+                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-blue-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-blue-800">R$ {maskCurrency(c.valorStr)}</span></div>
+                            ))}
+                          </div>
+                        )}
+                        {p.totalSaidasMes === 0 && <span className="text-[10px] italic text-slate-400">Sem contas lançadas neste mês.</span>}
                       </div>
                     </details>
 
@@ -465,7 +519,6 @@ export default function Home() {
                     <>
                       <div className="flex justify-between items-start mb-3 border-b pb-3 border-slate-100">
                         <h3 className="font-black text-[#009e90] text-lg">{cli.nome}</h3>
-                        {/* A TAG <a href="..."> RESOLVE O BUG DO WHATSAPP */}
                         <a 
                           href={`https://wa.me/55${cli.whatsapp.replace(/\D/g,'')}`} 
                           target="_blank" 

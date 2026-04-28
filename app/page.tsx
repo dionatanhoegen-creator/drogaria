@@ -9,6 +9,7 @@ const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ================= DADOS PADRÃO DO KANBAN =================
+// Corrigido para corresponder exatamente às colunas visuais
 const defaultKanbanCards = [
   { titulo: 'CNPJ (JUCEPAR)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
   { titulo: 'Inscrição Municipal', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
@@ -55,15 +56,12 @@ export default function Home() {
   // ================= BUSCA DE DADOS (SUPABASE) =================
   useEffect(() => {
     async function carregarDados() {
-      // Busca Contas
       const { data: contasDB } = await supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true });
       if (contasDB) setContasAPagar(contasDB);
 
-      // Busca Clientes
       const { data: clientesDB } = await supabase.from('clientes').select('*').order('created_at', { ascending: false });
       if (clientesDB) setClientes(clientesDB);
 
-      // Busca Kanban
       const { data: cardsDB } = await supabase.from('kanban_cards').select('*');
       if (cardsDB && cardsDB.length > 0) {
         setCards(cardsDB);
@@ -174,7 +172,7 @@ export default function Home() {
     };
   });
 
-  // ================= 2. LÓGICA CRM (SUPABASE) =================
+  // ================= 2. LÓGICA CRM =================
   const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   const [editandoCliId, setEditandoCliId] = useState<string | null>(null);
   const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
@@ -186,7 +184,6 @@ export default function Home() {
     setNovoCliente({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   };
 
-  // ESTA É A FUNÇÃO QUE FALTAVA E ESTAVA DANDO ERRO NO VERCEL
   const iniciarEdicaoCli = (cli: any) => {
     setEditandoCliId(cli.id);
     setTempEditCli({ nome: cli.nome, whatsapp: cli.whatsapp, compras: cli.compras, atendimento: cli.atendimento, tipo: cli.tipo });
@@ -203,13 +200,14 @@ export default function Home() {
     setClientes(clientes.filter(c => c.id !== id));
   };
 
-  // ================= 3. LÓGICA KANBAN (SUPABASE) =================
-  const colunasKanban = ['Backlog', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
+  // ================= 3. LÓGICA KANBAN =================
+  // Corrigido para as colunas reais do Kanban visual
+  const colunasKanban = ['A Fazer', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
   const [dataInauguracao, setDataInauguracao] = useState('');
 
-  const adicionarCard = async (area: string) => {
-    const novoCard = { titulo: 'Nova Tarefa', area, inicio: null, fim: null, status: 'A Fazer', bloqueado: false };
+  const adicionarCard = async (statusColuna: string) => {
+    const novoCard = { titulo: 'Nova Tarefa', area: 'Infraestrutura', inicio: null, fim: null, status: statusColuna, bloqueado: false };
     const { data } = await supabase.from('kanban_cards').insert([novoCard]).select();
     if (data) setCards([...cards, ...data]);
   };
@@ -255,8 +253,9 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-10 text-slate-800">
+    <div className="min-h-screen bg-slate-50 flex flex-col font-sans pb-10 text-slate-800 overflow-x-hidden">
       
+      {/* CABEÇALHO */}
       <header className="bg-[#009e90] text-white p-4 shadow-md flex justify-between items-center border-b-4 border-[#e8601c]">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Painel de Transição - Associadas</h1>
@@ -264,14 +263,15 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="bg-white border-b border-slate-200 px-6 py-3 flex space-x-4 shadow-sm overflow-x-auto">
-        <button onClick={() => setAbaAtiva('kanban')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📋</span> BOARD OPERACIONAL</button>
-        <button onClick={() => setAbaAtiva('contas')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
-        <button onClick={() => setAbaAtiva('clientes')} className={`flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>👥</span> GESTÃO DE CLIENTES</button>
+      <div className="bg-white border-b border-slate-200 px-4 py-3 flex space-x-3 shadow-sm overflow-x-auto snap-x hide-scrollbar">
+        <button onClick={() => setAbaAtiva('kanban')} className={`snap-start shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📋</span> BOARD OPERACIONAL</button>
+        <button onClick={() => setAbaAtiva('contas')} className={`snap-start shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
+        <button onClick={() => setAbaAtiva('clientes')} className={`snap-start shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>👥</span> GESTÃO DE CLIENTES</button>
       </div>
 
-      <main className="flex-1 p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
+      <main className="flex-1 p-4 md:p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
         
+        {/* RESUMO SIMPLIFICADO NO TOPO */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="bg-[#eaf8f1] p-5 rounded-2xl border border-[#009e90]/30 shadow-sm">
               <p className="text-[10px] text-[#009e90] font-bold uppercase mb-1">Saldo Base (240k)</p>
@@ -301,71 +301,82 @@ export default function Home() {
 
         {/* KANBAN */}
         {abaAtiva === 'kanban' && (
-          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6 flex flex-col">
-            <div className="flex flex-wrap justify-between items-center mb-6 border-b pb-4 border-[#009e90]">
+          <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6 flex flex-col w-full">
+            <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 border-b pb-4 border-[#009e90] gap-4">
               <div>
-                <h2 className="text-lg font-bold text-slate-800">Board Principal de Implantação (Por Setores)</h2>
-                <p className="text-xs text-slate-500 mt-1">Gerencie a obra, burocracia, RH e finanças em colunas separadas.</p>
+                <h2 className="text-lg font-bold text-slate-800">Board Principal de Implantação</h2>
+                <p className="text-xs text-slate-500 mt-1">Gerencie a obra, burocracia, RH e finanças movendo os cartões.</p>
               </div>
-              <div className="flex gap-4 items-center">
-                <div className="flex items-center gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-                  <label className="text-[10px] font-bold text-slate-500 uppercase">Meta de Inauguração:</label>
-                  <input type="date" value={dataInauguracao} onChange={(e) => setDataInauguracao(e.target.value)} className="text-sm bg-transparent font-black outline-none text-[#009e90]" />
+              <div className="flex flex-wrap gap-2 items-center">
+                <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 flex-1 md:flex-none">
+                  <label className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">Inauguração:</label>
+                  <input type="date" value={dataInauguracao} onChange={(e) => setDataInauguracao(e.target.value)} className="text-sm bg-transparent font-black outline-none text-[#009e90] w-full" />
                 </div>
-                <div className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm ${semaforo.cor}`}>
+                <div className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm flex-1 md:flex-none text-center ${semaforo.cor}`}>
                   {semaforo.texto}
                 </div>
               </div>
             </div>
 
             <div className="mb-6 flex items-center gap-4">
-              <span className="text-xs font-bold text-slate-500 uppercase w-32">Progresso Global</span>
+              <span className="text-xs font-bold text-slate-500 uppercase whitespace-nowrap">Progresso Global</span>
               <div className="flex-1 bg-slate-100 rounded-full h-3 border border-slate-200 overflow-hidden">
                 <div className="bg-[#009e90] h-full transition-all duration-500" style={{ width: `${progressoGeral}%` }}></div>
               </div>
               <span className="text-sm font-black text-[#009e90]">{progressoGeral}%</span>
             </div>
 
-            <div className="flex gap-4 overflow-x-auto pb-4 items-start">
-              {tagsSetores.map(coluna => (
-                <div key={coluna} className="flex-1 min-w-[320px] bg-slate-50 p-4 rounded-2xl border border-slate-200 shadow-inner flex flex-col max-h-[750px]">
+            {/* Configuração Responsiva das Colunas do Kanban */}
+            <div className="flex gap-4 overflow-x-auto pb-6 items-start snap-x snap-mandatory">
+              {colunasKanban.map(coluna => (
+                <div key={coluna} className="snap-center min-w-[85vw] md:min-w-[320px] flex-1 bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-200 shadow-inner flex flex-col max-h-[750px]">
                   
-                  <h3 className="font-bold text-white bg-[#009e90] px-4 py-3 rounded-t-xl flex justify-between items-center shadow-md">
+                  <h3 className="font-bold text-white bg-[#009e90] px-4 py-3 rounded-xl mb-3 flex justify-between items-center shadow-md">
                     {coluna}
                     <span className="bg-white text-[#009e90] rounded-full px-2.5 py-0.5 text-[10px] font-black shadow-sm">
-                      {cards.filter(c => c.area === coluna).length}
+                      {cards.filter(c => c.status === coluna).length}
                     </span>
                   </h3>
                   
-                  <div className="overflow-y-auto p-3 flex-1 space-y-3">
-                    {cards.filter(c => c.area === coluna).map(card => (
-                      <div key={card.id} className={`p-4 rounded-xl shadow-sm border-l-4 border-l-[#e8601c] border-y border-r border-slate-200 bg-white transition-all hover:shadow-md`}>
-                        <div className="flex justify-between items-start mb-2">
-                           <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${getTagColor(card.area)}`}>{card.area}</span>
+                  <div className="overflow-y-auto pr-1 flex-1 space-y-3">
+                    {cards.filter(c => c.status === coluna).map(card => (
+                      <div key={card.id} className={`p-4 rounded-xl shadow-sm border-l-4 border-l-[#009e90] border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col gap-2`}>
+                        
+                        <div className="flex justify-between items-start">
+                           {/* Select de Área para permitir alterar o setor */}
+                           <select 
+                             disabled={card.bloqueado}
+                             value={card.area} 
+                             onChange={(e) => atualizarCard(card.id, 'area', e.target.value)}
+                             className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full outline-none cursor-pointer ${getTagColor(card.area)}`}
+                           >
+                             {tagsSetores.map(t => <option key={t} value={t}>{t}</option>)}
+                           </select>
                            <button onClick={() => atualizarCard(card.id, 'bloqueado', !card.bloqueado)} className="text-slate-400">{card.bloqueado ? '🔒' : '🔓'}</button>
                         </div>
+                        
                         <textarea 
                            disabled={card.bloqueado}
                            value={card.titulo} 
                            onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
                            className="font-bold text-sm w-full bg-transparent resize-none outline-none border-b border-transparent focus:border-[#009e90]" 
                            rows={2}
+                           placeholder="Descrição da Tarefa..."
                         />
-                        <div className="grid grid-cols-2 gap-2 mt-3">
-                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio || ''} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b outline-none"/></div>
-                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim || ''} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b outline-none"/></div>
+                        
+                        <div className="grid grid-cols-2 gap-2 mt-1">
+                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio || ''} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
+                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim || ''} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
                         </div>
-                        <div className="flex justify-between items-center mt-3">
+                        
+                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
                           <select 
                              disabled={card.bloqueado}
                              value={card.status} 
                              onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
-                             className={`text-[10px] font-bold bg-slate-50 p-1.5 rounded border outline-none cursor-pointer ${card.status === 'Concluído' ? 'text-[#009e90]' : 'text-slate-600'}`}
+                             className={`text-[10px] font-bold p-1.5 rounded-lg border outline-none cursor-pointer ${card.status === 'Concluído' ? 'bg-[#eaf8f1] text-[#009e90] border-[#009e90]/20' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
                           >
-                            <option value="A Fazer">A Fazer</option>
-                            <option value="Em andamento">Em andamento</option>
-                            <option value="Aguardando terceiros">Aguardando terceiros</option>
-                            <option value="Concluído">Concluído</option>
+                            {colunasKanban.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                           </select>
                           {!card.bloqueado && <button onClick={() => excluirCard(card.id)} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
                         </div>
@@ -373,11 +384,9 @@ export default function Home() {
                     ))}
                   </div>
 
-                  <div className="p-3 border-t border-slate-200 bg-white rounded-b-2xl">
-                    <button onClick={() => adicionarCard(coluna)} className="w-full py-2 text-xs font-bold text-[#e8601c] bg-[#e8601c]/10 hover:bg-[#e8601c]/20 rounded-xl transition-all">
-                      + Criar Post-it
-                    </button>
-                  </div>
+                  <button onClick={() => adicionarCard(coluna)} className="w-full mt-3 py-3 text-xs font-bold text-[#e8601c] bg-[#e8601c]/10 hover:bg-[#e8601c]/20 rounded-xl transition-all">
+                    + Adicionar Nova Tarefa
+                  </button>
                 </div>
               ))}
             </div>
@@ -416,8 +425,8 @@ export default function Home() {
               </form>
             </section>
 
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-              <table className="w-full text-sm text-left">
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
+              <table className="w-full text-sm text-left min-w-[600px]">
                 <thead className="bg-[#eaf8f1] border-b border-[#009e90]/20 text-[10px] uppercase font-bold text-[#009e90]">
                   <tr>
                     <th className="px-6 py-4">Vencimento</th>
@@ -482,10 +491,10 @@ export default function Home() {
               </table>
             </section>
 
-            <div className="overflow-x-auto pb-4">
+            <div className="overflow-x-auto pb-4 snap-x">
               <div className="flex gap-4 min-w-max">
                 {projecao.map((p) => (
-                  <div key={p.idx} className={`w-64 bg-white p-5 rounded-2xl border shadow-sm flex flex-col ${p.saldoFinal < 0 ? 'bg-red-50 border-red-200' : 'border-slate-200'}`}>
+                  <div key={p.idx} className={`snap-start w-64 bg-white p-5 rounded-2xl border shadow-sm flex flex-col ${p.saldoFinal < 0 ? 'bg-red-50 border-red-200' : 'border-slate-200'}`}>
                     <div className="flex justify-between items-center border-b pb-2 mb-3 border-slate-100">
                       <span className="font-black text-[#009e90] text-lg">{p.nome}</span>
                       <span className="text-[10px] bg-[#e8601c]/10 text-[#e8601c] px-2 py-1 rounded-lg font-bold">Saída R$ {maskCurrency((p.totalSaidasMes * 100).toString())}</span>

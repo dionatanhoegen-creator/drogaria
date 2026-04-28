@@ -55,7 +55,7 @@ export default function Home() {
   // Estado para a Data de Inauguração (Lendo da memória local)
   const [dataInauguracao, setDataInauguracao] = useState('');
   
-  // NOVO: Estado para controlar quais cards do Kanban estão expandidos
+  // Estado para controlar quais cards do Kanban estão expandidos
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
 
   // ================= BUSCA DE DADOS (SUPABASE & LOCALSTORAGE) =================
@@ -248,7 +248,6 @@ export default function Home() {
     if (error) alert("Erro ao criar tarefa: " + error.message);
     else if (data) {
       setCards([...cards, ...data]);
-      // Já abre o card novo expandido
       setCardsExpandidos(prev => ({ ...prev, [data[0].id]: true }));
     }
   };
@@ -488,71 +487,81 @@ export default function Home() {
               </form>
             </section>
 
-            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-x-auto">
-              <table className="w-full text-sm text-left min-w-[600px]">
-                <thead className="bg-[#eaf8f1] border-b border-[#009e90]/20 text-[10px] uppercase font-bold text-[#009e90]">
-                  <tr>
-                    <th className="px-6 py-4">Vencimento</th>
-                    <th className="px-6 py-4">Descrição da Despesa</th>
-                    <th className="px-6 py-4">Status</th>
-                    <th className="px-6 py-4 text-right">Valor (R$)</th>
-                    <th className="px-6 py-4 text-center">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {contasAPagar.length === 0 && (
-                    <tr><td colSpan={5} className="p-4 text-center text-slate-400 italic">Nenhum lançamento efetuado.</td></tr>
-                  )}
-                  {contasAPagar.map((conta) => (
-                    <tr key={conta.id} className="hover:bg-slate-50 transition-all">
-                      <td className="px-6 py-3">
-                        {editandoId === conta.id ? 
-                          <input type="date" value={tempEdit.vencimento} onChange={(e) => setTempEdit({...tempEdit, vencimento: e.target.value})} className="border rounded p-1.5 text-xs outline-none focus:border-[#009e90]" /> : 
-                          <span className="font-mono font-bold text-slate-600">{conta.vencimento.split('-').reverse().join('/')}</span>
-                        }
-                      </td>
-                      <td className="px-6 py-3">
-                        {editandoId === conta.id ? 
-                          <input type="text" value={tempEdit.descricao} onChange={(e) => setTempEdit({...tempEdit, descricao: e.target.value})} className="border rounded p-1.5 w-full text-xs outline-none focus:border-[#009e90]" /> : 
-                          <span className="font-bold text-slate-800">{conta.descricao}</span>
-                        }
-                      </td>
-                      <td className="px-6 py-3">
-                        {editandoId === conta.id ? (
-                           <select value={tempEdit.status} onChange={(e) => setTempEdit({...tempEdit, status: e.target.value})} className="text-[10px] font-bold border rounded p-1 outline-none">
-                              <option value="Pagar">Pagar</option>
-                              <option value="Em orçamento">Em orçamento</option>
-                           </select>
-                        ) : (
-                          <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${conta.status === 'Em orçamento' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
-                            {conta.status}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-6 py-3 text-right">
-                        {editandoId === conta.id ? 
-                          <input type="text" value={tempEdit.valor} onChange={(e) => setTempEdit({...tempEdit, valor: maskCurrency(e.target.value)})} className="border rounded p-1.5 text-right text-xs font-bold outline-none focus:border-[#009e90]" /> : 
-                          <span className={`font-black ${conta.status === 'Em orçamento' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(conta.valor_str)}</span>
-                        }
-                      </td>
-                      <td className="px-6 py-3 text-center space-x-3">
-                        {editandoId === conta.id ? (
-                          <>
-                            <button onClick={() => confirmarEdicao(conta.id)} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Salvar</button>
-                            <button onClick={() => setEditandoId(null)} className="text-slate-400 font-bold text-xs uppercase hover:underline">Cancelar</button>
-                          </>
-                        ) : (
-                          <>
-                            <button onClick={() => { setEditandoId(conta.id); setTempEdit({ descricao: conta.descricao, vencimento: conta.vencimento, valor: maskCurrency(conta.valor_str), status: conta.status || 'Pagar' }); }} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Editar</button>
-                            <button onClick={() => excluirConta(conta.id)} className="text-red-400 font-bold text-xs uppercase hover:underline">Excluir</button>
-                          </>
-                        )}
-                      </td>
+            {/* TABELA DE LANÇAMENTOS - AGORA COM SANFONA (DETAILS) */}
+            <details className="bg-white rounded-2xl shadow-sm border border-slate-200 group" open>
+              <summary className="p-4 font-bold text-slate-700 cursor-pointer hover:bg-slate-50 outline-none border-b border-transparent group-open:border-slate-100 flex justify-between items-center list-none [&::-webkit-details-marker]:hidden transition-all">
+                <span className="flex items-center gap-2">
+                  <span className="text-[#009e90] text-xs transform group-open:rotate-180 transition-transform duration-200">▼</span> 
+                  Histórico de Lançamentos
+                </span>
+                <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg text-slate-500 font-bold">{contasAPagar.length} registos</span>
+              </summary>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm text-left min-w-[600px]">
+                  <thead className="bg-[#eaf8f1] border-b border-[#009e90]/20 text-[10px] uppercase font-bold text-[#009e90]">
+                    <tr>
+                      <th className="px-6 py-4">Vencimento</th>
+                      <th className="px-6 py-4">Descrição da Despesa</th>
+                      <th className="px-6 py-4">Status</th>
+                      <th className="px-6 py-4 text-right">Valor (R$)</th>
+                      <th className="px-6 py-4 text-center">Ações</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </section>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {contasAPagar.length === 0 && (
+                      <tr><td colSpan={5} className="p-4 text-center text-slate-400 italic">Nenhum lançamento efetuado.</td></tr>
+                    )}
+                    {contasAPagar.map((conta) => (
+                      <tr key={conta.id} className="hover:bg-slate-50 transition-all">
+                        <td className="px-6 py-3">
+                          {editandoId === conta.id ? 
+                            <input type="date" value={tempEdit.vencimento} onChange={(e) => setTempEdit({...tempEdit, vencimento: e.target.value})} className="border rounded p-1.5 text-xs outline-none focus:border-[#009e90]" /> : 
+                            <span className="font-mono font-bold text-slate-600">{conta.vencimento.split('-').reverse().join('/')}</span>
+                          }
+                        </td>
+                        <td className="px-6 py-3">
+                          {editandoId === conta.id ? 
+                            <input type="text" value={tempEdit.descricao} onChange={(e) => setTempEdit({...tempEdit, descricao: e.target.value})} className="border rounded p-1.5 w-full text-xs outline-none focus:border-[#009e90]" /> : 
+                            <span className="font-bold text-slate-800">{conta.descricao}</span>
+                          }
+                        </td>
+                        <td className="px-6 py-3">
+                          {editandoId === conta.id ? (
+                             <select value={tempEdit.status} onChange={(e) => setTempEdit({...tempEdit, status: e.target.value})} className="text-[10px] font-bold border rounded p-1 outline-none">
+                                <option value="Pagar">Pagar</option>
+                                <option value="Em orçamento">Em orçamento</option>
+                             </select>
+                          ) : (
+                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${conta.status === 'Em orçamento' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                              {conta.status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-6 py-3 text-right">
+                          {editandoId === conta.id ? 
+                            <input type="text" value={tempEdit.valor} onChange={(e) => setTempEdit({...tempEdit, valor: maskCurrency(e.target.value)})} className="border rounded p-1.5 text-right text-xs font-bold outline-none focus:border-[#009e90]" /> : 
+                            <span className={`font-black ${conta.status === 'Em orçamento' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(conta.valor_str)}</span>
+                          }
+                        </td>
+                        <td className="px-6 py-3 text-center space-x-3">
+                          {editandoId === conta.id ? (
+                            <>
+                              <button onClick={() => confirmarEdicao(conta.id)} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Salvar</button>
+                              <button onClick={() => setEditandoId(null)} className="text-slate-400 font-bold text-xs uppercase hover:underline">Cancelar</button>
+                            </>
+                          ) : (
+                            <>
+                              <button onClick={() => { setEditandoId(conta.id); setTempEdit({ descricao: conta.descricao, vencimento: conta.vencimento, valor: maskCurrency(conta.valor_str), status: conta.status || 'Pagar' }); }} className="text-[#009e90] font-bold text-xs uppercase hover:underline">Editar</button>
+                              <button onClick={() => excluirConta(conta.id)} className="text-red-400 font-bold text-xs uppercase hover:underline">Excluir</button>
+                            </>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </details>
 
             <div className="overflow-x-auto pb-4 snap-x">
               <div className="flex gap-4 min-w-max">

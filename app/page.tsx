@@ -4,12 +4,11 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@supabase/supabase-js';
 
 // ================= INICIALIZAÇÃO DO SUPABASE =================
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://fantasma.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'chave_fantasma';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ================= DADOS PADRÃO DO KANBAN =================
-// Corrigido para corresponder exatamente às colunas visuais
 const defaultKanbanCards = [
   { titulo: 'CNPJ (JUCEPAR)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
   { titulo: 'Inscrição Municipal', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
@@ -62,10 +61,13 @@ export default function Home() {
       const { data: clientesDB } = await supabase.from('clientes').select('*').order('created_at', { ascending: false });
       if (clientesDB) setClientes(clientesDB);
 
-      const { data: cardsDB } = await supabase.from('kanban_cards').select('*');
-      if (cardsDB && cardsDB.length > 0) {
+      const { data: cardsDB, error } = await supabase.from('kanban_cards').select('*');
+      if (error) {
+        console.error("Erro ao carregar Kanban:", error);
+      } else if (cardsDB && cardsDB.length > 0) {
         setCards(cardsDB);
       } else {
+        // Injeta os dados padrão se estiver vazio
         const { data: inseridos } = await supabase.from('kanban_cards').insert(defaultKanbanCards).select();
         if (inseridos) setCards(inseridos);
       }
@@ -113,7 +115,8 @@ export default function Home() {
       });
     }
 
-    const { data: inseridos } = await supabase.from('contas_pagar').insert(novasParcelas).select();
+    const { data: inseridos, error } = await supabase.from('contas_pagar').insert(novasParcelas).select();
+    if (error) alert("Erro ao salvar conta: " + error.message);
     if (inseridos) {
       setContasAPagar([...contasAPagar, ...inseridos].sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
     }
@@ -131,14 +134,18 @@ export default function Home() {
       status: tempEdit.status 
     };
 
-    await supabase.from('contas_pagar').update(updatedData).eq('id', id);
-    setContasAPagar(contasAPagar.map(c => c.id === id ? { ...c, ...updatedData } : c).sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
-    setEditandoId(null);
+    const { error } = await supabase.from('contas_pagar').update(updatedData).eq('id', id);
+    if (error) alert("Erro ao editar: " + error.message);
+    else {
+      setContasAPagar(contasAPagar.map(c => c.id === id ? { ...c, ...updatedData } : c).sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
+      setEditandoId(null);
+    }
   };
 
   const excluirConta = async (id: string) => {
-    await supabase.from('contas_pagar').delete().eq('id', id);
-    setContasAPagar(contasAPagar.filter(c => c.id !== id));
+    const { error } = await supabase.from('contas_pagar').delete().eq('id', id);
+    if (error) alert("Erro ao excluir: " + error.message);
+    else setContasAPagar(contasAPagar.filter(c => c.id !== id));
   };
 
   const capital = parseCurrency(maskCurrency(saldoEmConta));
@@ -179,8 +186,9 @@ export default function Home() {
 
   const salvarCliente = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data } = await supabase.from('clientes').insert([novoCliente]).select();
-    if (data) setClientes([...clientes, ...data]);
+    const { data, error } = await supabase.from('clientes').insert([novoCliente]).select();
+    if (error) alert("Erro ao salvar cliente: " + error.message);
+    else if (data) setClientes([...clientes, ...data]);
     setNovoCliente({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   };
 
@@ -190,36 +198,48 @@ export default function Home() {
   };
 
   const confirmarEdicaoCli = async (id: string) => {
-    await supabase.from('clientes').update(tempEditCli).eq('id', id);
-    setClientes(clientes.map(c => c.id === id ? { ...c, ...tempEditCli } : c));
-    setEditandoCliId(null);
+    const { error } = await supabase.from('clientes').update(tempEditCli).eq('id', id);
+    if (error) alert("Erro ao editar cliente: " + error.message);
+    else {
+      setClientes(clientes.map(c => c.id === id ? { ...c, ...tempEditCli } : c));
+      setEditandoCliId(null);
+    }
   };
 
   const excluirCliente = async (id: string) => {
-    await supabase.from('clientes').delete().eq('id', id);
-    setClientes(clientes.filter(c => c.id !== id));
+    const { error } = await supabase.from('clientes').delete().eq('id', id);
+    if (error) alert("Erro ao excluir cliente: " + error.message);
+    else setClientes(clientes.filter(c => c.id !== id));
   };
 
   // ================= 3. LÓGICA KANBAN =================
-  // Corrigido para as colunas reais do Kanban visual
   const colunasKanban = ['A Fazer', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
   const [dataInauguracao, setDataInauguracao] = useState('');
 
-  const adicionarCard = async (statusColuna: string) => {
-    const novoCard = { titulo: 'Nova Tarefa', area: 'Infraestrutura', inicio: null, fim: null, status: statusColuna, bloqueado: false };
-    const { data } = await supabase.from('kanban_cards').insert([novoCard]).select();
-    if (data) setCards([...cards, ...data]);
+  const adicionarCard = async (colunaArea: string) => {
+    const novoCard = { titulo: 'Nova Tarefa', area: colunaArea, inicio: null, fim: null, status: 'A Fazer', bloqueado: false };
+    const { data, error } = await supabase.from('kanban_cards').insert([novoCard]).select();
+    if (error) alert("Erro ao criar tarefa: " + error.message);
+    else if (data) setCards([...cards, ...data]);
   };
 
   const atualizarCard = async (id: string, campo: string, valor: any) => {
-    setCards(cards.map(c => c.id === id ? { ...c, [campo]: valor } : c));
-    await supabase.from('kanban_cards').update({ [campo]: valor }).eq('id', id);
+    // Tratamento vital para o Supabase: se apagar a data, vira null em vez de string vazia
+    let valorFinal = valor;
+    if ((campo === 'inicio' || campo === 'fim') && valor === '') {
+      valorFinal = null;
+    }
+
+    setCards(cards.map(c => c.id === id ? { ...c, [campo]: valorFinal } : c));
+    const { error } = await supabase.from('kanban_cards').update({ [campo]: valorFinal }).eq('id', id);
+    if (error) alert(`Erro ao atualizar: ${error.message}`);
   };
 
   const excluirCard = async (id: string) => {
-    await supabase.from('kanban_cards').delete().eq('id', id);
-    setCards(cards.filter(c => c.id !== id));
+    const { error } = await supabase.from('kanban_cards').delete().eq('id', id);
+    if (error) alert("Erro ao excluir tarefa: " + error.message);
+    else setCards(cards.filter(c => c.id !== id));
   };
 
   const getTagColor = (area: string) => {
@@ -263,10 +283,10 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="bg-white border-b border-slate-200 px-4 py-3 flex space-x-3 shadow-sm overflow-x-auto snap-x hide-scrollbar">
-        <button onClick={() => setAbaAtiva('kanban')} className={`snap-start shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📋</span> BOARD OPERACIONAL</button>
-        <button onClick={() => setAbaAtiva('contas')} className={`snap-start shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
-        <button onClick={() => setAbaAtiva('clientes')} className={`snap-start shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>👥</span> GESTÃO DE CLIENTES</button>
+      <div className="bg-white border-b border-slate-200 px-4 py-3 flex space-x-3 shadow-sm overflow-x-auto hide-scrollbar">
+        <button onClick={() => setAbaAtiva('kanban')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📋</span> BOARD OPERACIONAL</button>
+        <button onClick={() => setAbaAtiva('contas')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
+        <button onClick={() => setAbaAtiva('clientes')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>👥</span> GESTÃO DE CLIENTES</button>
       </div>
 
       <main className="flex-1 p-4 md:p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
@@ -299,13 +319,13 @@ export default function Home() {
             ))}
         </div>
 
-        {/* KANBAN */}
+        {/* KANBAN (Agrupado por Área/Setor) */}
         {abaAtiva === 'kanban' && (
           <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6 flex flex-col w-full">
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 border-b pb-4 border-[#009e90] gap-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Board Principal de Implantação</h2>
-                <p className="text-xs text-slate-500 mt-1">Gerencie a obra, burocracia, RH e finanças movendo os cartões.</p>
+                <p className="text-xs text-slate-500 mt-1">Gerencie a obra e burocracia dentro de cada Setor.</p>
               </div>
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 flex-1 md:flex-none">
@@ -326,32 +346,23 @@ export default function Home() {
               <span className="text-sm font-black text-[#009e90]">{progressoGeral}%</span>
             </div>
 
-            {/* Configuração Responsiva das Colunas do Kanban */}
-            <div className="flex gap-4 overflow-x-auto pb-6 items-start snap-x snap-mandatory">
-              {colunasKanban.map(coluna => (
-                <div key={coluna} className="snap-center min-w-[85vw] md:min-w-[320px] flex-1 bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-200 shadow-inner flex flex-col max-h-[750px]">
+            <div className="flex gap-4 overflow-x-auto pb-6 items-start snap-x">
+              {tagsSetores.map(areaColuna => (
+                <div key={areaColuna} className="snap-center min-w-[85vw] md:min-w-[320px] flex-1 bg-slate-50 p-3 md:p-4 rounded-2xl border border-slate-200 shadow-inner flex flex-col max-h-[750px]">
                   
                   <h3 className="font-bold text-white bg-[#009e90] px-4 py-3 rounded-xl mb-3 flex justify-between items-center shadow-md">
-                    {coluna}
+                    {areaColuna}
                     <span className="bg-white text-[#009e90] rounded-full px-2.5 py-0.5 text-[10px] font-black shadow-sm">
-                      {cards.filter(c => c.status === coluna).length}
+                      {cards.filter(c => c.area === areaColuna).length}
                     </span>
                   </h3>
                   
                   <div className="overflow-y-auto pr-1 flex-1 space-y-3">
-                    {cards.filter(c => c.status === coluna).map(card => (
-                      <div key={card.id} className={`p-4 rounded-xl shadow-sm border-l-4 border-l-[#009e90] border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col gap-2`}>
+                    {cards.filter(c => c.area === areaColuna).map(card => (
+                      <div key={card.id} className={`p-4 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col gap-2 ${card.status === 'Concluído' ? 'border-l-[#009e90]' : 'border-l-[#e8601c]'}`}>
                         
                         <div className="flex justify-between items-start">
-                           {/* Select de Área para permitir alterar o setor */}
-                           <select 
-                             disabled={card.bloqueado}
-                             value={card.area} 
-                             onChange={(e) => atualizarCard(card.id, 'area', e.target.value)}
-                             className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full outline-none cursor-pointer ${getTagColor(card.area)}`}
-                           >
-                             {tagsSetores.map(t => <option key={t} value={t}>{t}</option>)}
-                           </select>
+                           <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${getTagColor(card.area)}`}>{card.area}</span>
                            <button onClick={() => atualizarCard(card.id, 'bloqueado', !card.bloqueado)} className="text-slate-400">{card.bloqueado ? '🔒' : '🔓'}</button>
                         </div>
                         
@@ -359,7 +370,7 @@ export default function Home() {
                            disabled={card.bloqueado}
                            value={card.titulo} 
                            onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
-                           className="font-bold text-sm w-full bg-transparent resize-none outline-none border-b border-transparent focus:border-[#009e90]" 
+                           className={`font-bold text-sm w-full bg-transparent resize-none outline-none border-b border-transparent focus:border-[#009e90] ${card.status === 'Concluído' ? 'line-through text-slate-400' : 'text-slate-800'}`}
                            rows={2}
                            placeholder="Descrição da Tarefa..."
                         />
@@ -374,7 +385,7 @@ export default function Home() {
                              disabled={card.bloqueado}
                              value={card.status} 
                              onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
-                             className={`text-[10px] font-bold p-1.5 rounded-lg border outline-none cursor-pointer ${card.status === 'Concluído' ? 'bg-[#eaf8f1] text-[#009e90] border-[#009e90]/20' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                             className={`text-[10px] font-bold p-1.5 rounded-lg border outline-none cursor-pointer w-[65%] ${card.status === 'Concluído' ? 'bg-[#eaf8f1] text-[#009e90] border-[#009e90]/20' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
                           >
                             {colunasKanban.map(opt => <option key={opt} value={opt}>{opt}</option>)}
                           </select>
@@ -384,8 +395,8 @@ export default function Home() {
                     ))}
                   </div>
 
-                  <button onClick={() => adicionarCard(coluna)} className="w-full mt-3 py-3 text-xs font-bold text-[#e8601c] bg-[#e8601c]/10 hover:bg-[#e8601c]/20 rounded-xl transition-all">
-                    + Adicionar Nova Tarefa
+                  <button onClick={() => adicionarCard(areaColuna)} className="w-full mt-3 py-3 text-xs font-bold text-[#e8601c] bg-[#e8601c]/10 hover:bg-[#e8601c]/20 rounded-xl transition-all">
+                    + Adicionar Tarefa em {areaColuna}
                   </button>
                 </div>
               ))}

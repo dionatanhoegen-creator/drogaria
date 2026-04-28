@@ -52,8 +52,11 @@ export default function Home() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [cards, setCards] = useState<any[]>([]);
 
-  // NOVO: Estado para a Data de Inauguração (Lendo da memória local)
+  // Estado para a Data de Inauguração (Lendo da memória local)
   const [dataInauguracao, setDataInauguracao] = useState('');
+  
+  // NOVO: Estado para controlar quais cards do Kanban estão expandidos
+  const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
 
   // ================= BUSCA DE DADOS (SUPABASE & LOCALSTORAGE) =================
   useEffect(() => {
@@ -88,6 +91,14 @@ export default function Home() {
     const novaData = e.target.value;
     setDataInauguracao(novaData);
     localStorage.setItem('dataInauguracao', novaData);
+  };
+
+  // Handler para minimizar/expandir o card
+  const toggleCard = (id: string) => {
+    setCardsExpandidos(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
   };
 
   // ================= LÓGICA FINANCEIRA =================
@@ -235,7 +246,11 @@ export default function Home() {
     const novoCard = { titulo: 'Nova Tarefa', area: colunaArea, inicio: null, fim: null, status: 'A Fazer', bloqueado: false };
     const { data, error } = await supabase.from('kanban_cards').insert([novoCard]).select();
     if (error) alert("Erro ao criar tarefa: " + error.message);
-    else if (data) setCards([...cards, ...data]);
+    else if (data) {
+      setCards([...cards, ...data]);
+      // Já abre o card novo expandido
+      setCardsExpandidos(prev => ({ ...prev, [data[0].id]: true }));
+    }
   };
 
   const atualizarCard = async (id: string, campo: string, valor: any) => {
@@ -304,33 +319,35 @@ export default function Home() {
 
       <main className="flex-1 p-4 md:p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
         
-        {/* RESUMO SIMPLIFICADO NO TOPO */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="bg-[#eaf8f1] p-5 rounded-2xl border border-[#009e90]/30 shadow-sm">
-              <p className="text-[10px] text-[#009e90] font-bold uppercase mb-1">Saldo Base (240k)</p>
-              <div className="flex items-center text-2xl font-black text-[#009e90]">
-                <span className="mr-1">R$</span>
-                <input type="text" value={maskCurrency(saldoEmConta)} onChange={(e) => setSaldoEmConta(e.target.value)} className="bg-transparent w-full outline-none" />
-              </div>
-            </div>
-            {projecao.slice(0, 3).map((p, idx) => (
-              <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
-                <div className={`absolute top-0 left-0 w-1 h-full ${p.totalGastoRealNum > 0 ? 'bg-red-400' : p.totalOrcamentoNum > 0 ? 'bg-blue-400' : 'bg-[#e8601c]/50'}`}></div>
-                <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Previsão em {p.nome}</p>
-                <div className='flex gap-3'>
-                  {p.totalGastoRealNum > 0 && (
-                     <p className="text-xl font-bold text-red-600">R$ {maskCurrency((p.totalGastoRealNum * 100).toString())} <span className="text-[10px] text-red-400">(Real)</span></p>
-                  )}
-                  {p.totalOrcamentoNum > 0 && (
-                     <p className="text-xl font-bold text-blue-600">R$ {maskCurrency((p.totalOrcamentoNum * 100).toString())} <span className="text-[10px] text-blue-400">(Orç)</span></p>
-                  )}
-                  {p.totalSaidasMes === 0 && (
-                     <p className="text-2xl font-black text-[#e8601c]">R$ 0,00</p>
-                  )}
+        {/* RESUMO SIMPLIFICADO NO TOPO - AGORA APENAS NA ABA DE CONTAS */}
+        {abaAtiva === 'contas' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="bg-[#eaf8f1] p-5 rounded-2xl border border-[#009e90]/30 shadow-sm">
+                <p className="text-[10px] text-[#009e90] font-bold uppercase mb-1">Saldo Base (240k)</p>
+                <div className="flex items-center text-2xl font-black text-[#009e90]">
+                  <span className="mr-1">R$</span>
+                  <input type="text" value={maskCurrency(saldoEmConta)} onChange={(e) => setSaldoEmConta(e.target.value)} className="bg-transparent w-full outline-none" />
                 </div>
               </div>
-            ))}
-        </div>
+              {projecao.slice(0, 3).map((p, idx) => (
+                <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                  <div className={`absolute top-0 left-0 w-1 h-full ${p.totalGastoRealNum > 0 ? 'bg-red-400' : p.totalOrcamentoNum > 0 ? 'bg-blue-400' : 'bg-[#e8601c]/50'}`}></div>
+                  <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Previsão em {p.nome}</p>
+                  <div className='flex gap-3'>
+                    {p.totalGastoRealNum > 0 && (
+                      <p className="text-xl font-bold text-red-600">R$ {maskCurrency((p.totalGastoRealNum * 100).toString())} <span className="text-[10px] text-red-400">(Real)</span></p>
+                    )}
+                    {p.totalOrcamentoNum > 0 && (
+                      <p className="text-xl font-bold text-blue-600">R$ {maskCurrency((p.totalOrcamentoNum * 100).toString())} <span className="text-[10px] text-blue-400">(Orç)</span></p>
+                    )}
+                    {p.totalSaidasMes === 0 && (
+                      <p className="text-2xl font-black text-[#e8601c]">R$ 0,00</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+          </div>
+        )}
 
         {/* KANBAN */}
         {abaAtiva === 'kanban' && (
@@ -338,12 +355,11 @@ export default function Home() {
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 border-b pb-4 border-[#009e90] gap-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Board Principal de Implantação</h2>
-                <p className="text-xs text-slate-500 mt-1">Gerencie a obra e burocracia dentro de cada Setor.</p>
+                <p className="text-xs text-slate-500 mt-1">Clique num cartão para abrir os detalhes ou mova as tarefas.</p>
               </div>
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 flex-1 md:flex-none">
                   <label className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">Inauguração:</label>
-                  {/* MODIFICADO AQUI: Utilizando a função com localStorage */}
                   <input type="date" value={dataInauguracao} onChange={atualizarDataInauguracao} className="text-sm bg-transparent font-black outline-none text-[#009e90] w-full" />
                 </div>
                 <div className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm flex-1 md:flex-none text-center ${semaforo.cor}`}>
@@ -371,46 +387,68 @@ export default function Home() {
                     </span>
                   </h3>
                   
-                  <div className="overflow-y-auto pr-1 flex-1 space-y-3">
-                    {cards.filter(c => c.area === areaColuna).map(card => (
-                      <div key={card.id} className={`p-4 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col gap-2 ${card.status === 'Concluído' ? 'border-l-[#009e90]' : 'border-l-[#e8601c]'}`}>
-                        
-                        <div className="flex justify-between items-start">
-                           <span className={`text-[9px] font-bold uppercase px-2 py-0.5 rounded-full ${getTagColor(card.area)}`}>{card.area}</span>
-                           <button onClick={() => atualizarCard(card.id, 'bloqueado', !card.bloqueado)} className="text-slate-400">{card.bloqueado ? '🔒' : '🔓'}</button>
-                        </div>
-                        
-                        <textarea 
-                           disabled={card.bloqueado}
-                           value={card.titulo} 
-                           onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
-                           className={`font-bold text-sm w-full bg-transparent resize-none outline-none border-b border-transparent focus:border-[#009e90] ${card.status === 'Concluído' ? 'line-through text-slate-400' : 'text-slate-800'}`}
-                           rows={2}
-                           placeholder="Descrição da Tarefa..."
-                        />
-                        
-                        <div className="grid grid-cols-2 gap-2 mt-1">
-                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio || ''} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
-                           <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim || ''} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
-                        </div>
-                        
-                        <div className="flex justify-between items-center mt-2 pt-2 border-t border-slate-100">
-                          <select 
-                             disabled={card.bloqueado}
-                             value={card.status} 
-                             onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
-                             className={`text-[10px] font-bold p-1.5 rounded-lg border outline-none cursor-pointer w-[65%] ${card.status === 'Concluído' ? 'bg-[#eaf8f1] text-[#009e90] border-[#009e90]/20' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                  <div className="overflow-y-auto pr-1 flex-1 space-y-2">
+                    {cards.filter(c => c.area === areaColuna).map(card => {
+                      const isExpanded = cardsExpandidos[card.id] || false;
+
+                      return (
+                        <div key={card.id} className={`p-3 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col ${card.status === 'Concluído' ? 'border-l-[#009e90]' : 'border-l-[#e8601c]'}`}>
+                          
+                          {/* CABEÇALHO DO CARD (MINIMIZADO) */}
+                          <div 
+                            className="flex justify-between items-center cursor-pointer"
+                            onClick={() => toggleCard(card.id)}
                           >
-                            {colunasKanban.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                          </select>
-                          {!card.bloqueado && <button onClick={() => excluirCard(card.id)} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
+                            <div className="flex items-center gap-2 overflow-hidden">
+                               <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full whitespace-nowrap ${getTagColor(card.area)}`}>{card.status}</span>
+                               <span className={`text-xs font-bold truncate ${card.status === 'Concluído' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                                 {card.titulo || 'Nova Tarefa'}
+                               </span>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                               <button onClick={(e) => { e.stopPropagation(); atualizarCard(card.id, 'bloqueado', !card.bloqueado); }} className="text-slate-300 hover:text-slate-500 text-xs">{card.bloqueado ? '🔒' : '🔓'}</button>
+                               <span className="text-slate-400 text-[10px] ml-1">{isExpanded ? '▲' : '▼'}</span>
+                            </div>
+                          </div>
+                          
+                          {/* CONTEÚDO EXPANDIDO */}
+                          {isExpanded && (
+                            <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-2">
+                              <textarea 
+                                disabled={card.bloqueado}
+                                value={card.titulo} 
+                                onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
+                                className={`font-bold text-sm w-full bg-slate-50 p-2 rounded-lg resize-none outline-none border border-slate-200 focus:border-[#009e90] ${card.status === 'Concluído' ? 'text-slate-400' : 'text-slate-800'}`}
+                                rows={2}
+                                placeholder="Nome da Tarefa..."
+                              />
+                              
+                              <div className="grid grid-cols-2 gap-2 mt-1">
+                                <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio || ''} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
+                                <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim || ''} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
+                              </div>
+                              
+                              <div className="flex justify-between items-center mt-2">
+                                <select 
+                                  disabled={card.bloqueado}
+                                  value={card.status} 
+                                  onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
+                                  className={`text-[10px] font-bold p-1.5 rounded-lg border outline-none cursor-pointer w-[65%] ${card.status === 'Concluído' ? 'bg-[#eaf8f1] text-[#009e90] border-[#009e90]/20' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                                >
+                                  {colunasKanban.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                </select>
+                                {!card.bloqueado && <button onClick={() => excluirCard(card.id)} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
+                              </div>
+                            </div>
+                          )}
+
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
-                  <button onClick={() => adicionarCard(areaColuna)} className="w-full mt-3 py-3 text-xs font-bold text-[#e8601c] bg-[#e8601c]/10 hover:bg-[#e8601c]/20 rounded-xl transition-all">
-                    + Adicionar Tarefa em {areaColuna}
+                  <button onClick={() => adicionarCard(areaColuna)} className="w-full mt-3 py-2 text-[10px] font-bold text-[#e8601c] bg-[#e8601c]/10 hover:bg-[#e8601c]/20 rounded-xl transition-all">
+                    + Adicionar Tarefa
                   </button>
                 </div>
               ))}

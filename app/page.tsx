@@ -52,8 +52,17 @@ export default function Home() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [cards, setCards] = useState<any[]>([]);
 
-  // ================= BUSCA DE DADOS (SUPABASE) =================
+  // NOVO: Estado para a Data de Inauguração (Lendo da memória local)
+  const [dataInauguracao, setDataInauguracao] = useState('');
+
+  // ================= BUSCA DE DADOS (SUPABASE & LOCALSTORAGE) =================
   useEffect(() => {
+    // Carrega a data de inauguração salva no navegador
+    const dataSalva = localStorage.getItem('dataInauguracao');
+    if (dataSalva) {
+      setDataInauguracao(dataSalva);
+    }
+
     async function carregarDados() {
       const { data: contasDB } = await supabase.from('contas_pagar').select('*').order('vencimento', { ascending: true });
       if (contasDB) setContasAPagar(contasDB);
@@ -67,13 +76,19 @@ export default function Home() {
       } else if (cardsDB && cardsDB.length > 0) {
         setCards(cardsDB);
       } else {
-        // Injeta os dados padrão se estiver vazio
         const { data: inseridos } = await supabase.from('kanban_cards').insert(defaultKanbanCards).select();
         if (inseridos) setCards(inseridos);
       }
     }
     carregarDados();
   }, []);
+
+  // Handler para salvar a data no estado e na memória local
+  const atualizarDataInauguracao = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const novaData = e.target.value;
+    setDataInauguracao(novaData);
+    localStorage.setItem('dataInauguracao', novaData);
+  };
 
   // ================= LÓGICA FINANCEIRA =================
   const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
@@ -215,7 +230,6 @@ export default function Home() {
   // ================= 3. LÓGICA KANBAN =================
   const colunasKanban = ['A Fazer', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
-  const [dataInauguracao, setDataInauguracao] = useState('');
 
   const adicionarCard = async (colunaArea: string) => {
     const novoCard = { titulo: 'Nova Tarefa', area: colunaArea, inicio: null, fim: null, status: 'A Fazer', bloqueado: false };
@@ -225,7 +239,6 @@ export default function Home() {
   };
 
   const atualizarCard = async (id: string, campo: string, valor: any) => {
-    // Tratamento vital para o Supabase: se apagar a data, vira null em vez de string vazia
     let valorFinal = valor;
     if ((campo === 'inicio' || campo === 'fim') && valor === '') {
       valorFinal = null;
@@ -319,7 +332,7 @@ export default function Home() {
             ))}
         </div>
 
-        {/* KANBAN (Agrupado por Área/Setor) */}
+        {/* KANBAN */}
         {abaAtiva === 'kanban' && (
           <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6 flex flex-col w-full">
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 border-b pb-4 border-[#009e90] gap-4">
@@ -330,7 +343,8 @@ export default function Home() {
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 flex-1 md:flex-none">
                   <label className="text-[10px] font-bold text-slate-500 uppercase whitespace-nowrap">Inauguração:</label>
-                  <input type="date" value={dataInauguracao} onChange={(e) => setDataInauguracao(e.target.value)} className="text-sm bg-transparent font-black outline-none text-[#009e90] w-full" />
+                  {/* MODIFICADO AQUI: Utilizando a função com localStorage */}
+                  <input type="date" value={dataInauguracao} onChange={atualizarDataInauguracao} className="text-sm bg-transparent font-black outline-none text-[#009e90] w-full" />
                 </div>
                 <div className={`px-4 py-2.5 rounded-xl text-xs font-bold shadow-sm flex-1 md:flex-none text-center ${semaforo.cor}`}>
                   {semaforo.texto}

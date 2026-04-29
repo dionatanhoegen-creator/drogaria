@@ -52,11 +52,30 @@ export default function Home() {
   const [clientes, setClientes] = useState<any[]>([]);
   const [cards, setCards] = useState<any[]>([]);
   const [fornecedores, setFornecedores] = useState<any[]>([]);
-  const [orcamentos, setOrcamentos] = useState<any[]>([]); // NOVO: Orçamentos
+  const [orcamentos, setOrcamentos] = useState<any[]>([]);
 
+  // ================= ESTADOS DE UI E FORMULÁRIOS =================
   const [dataInauguracao, setDataInauguracao] = useState('');
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+
+  // Estados Financeiros (Que estavam faltando!)
+  const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
+  const [editandoId, setEditandoId] = useState<string | null>(null);
+  const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
+
+  // Estados Clientes
+  const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
+  const [editandoCliId, setEditandoCliId] = useState<string | null>(null);
+  const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
+
+  // Estados Fornecedores
+  const [novoFornecedor, setNovoFornecedor] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
+  const [editandoFornId, setEditandoFornId] = useState<string | null>(null);
+  const [tempEditForn, setTempEditForn] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
+
+  // Estados Orçamentos
+  const [novoOrcamento, setNovoOrcamento] = useState({ servico: '', fornecedor: '', valor: '', prazo: '', pagamento: '', diferenciais: '' });
 
   // ================= BUSCA DE DADOS =================
   useEffect(() => {
@@ -75,12 +94,13 @@ export default function Home() {
       const { data: fornDB } = await supabase.from('fornecedores').select('*').order('created_at', { ascending: false });
       if (fornDB) setFornecedores(fornDB);
 
-      // NOVO: Busca Orçamentos
       const { data: orcaDB } = await supabase.from('orcamentos').select('*').order('created_at', { ascending: false });
       if (orcaDB) setOrcamentos(orcaDB);
 
-      const { data: cardsDB } = await supabase.from('kanban_cards').select('*');
-      if (cardsDB && cardsDB.length > 0) {
+      const { data: cardsDB, error } = await supabase.from('kanban_cards').select('*');
+      if (error) {
+        console.error("Erro ao carregar Kanban:", error);
+      } else if (cardsDB && cardsDB.length > 0) {
         setCards(cardsDB);
       } else {
         const { data: inseridos } = await supabase.from('kanban_cards').insert(defaultKanbanCards).select();
@@ -151,9 +171,7 @@ export default function Home() {
     return Number(value.replace(/\./g, '').replace(',', '.'));
   };
 
-  // ================= LÓGICA ORÇAMENTOS (NOVO) =================
-  const [novoOrcamento, setNovoOrcamento] = useState({ servico: '', fornecedor: '', valor: '', prazo: '', pagamento: '', diferenciais: '' });
-
+  // ================= LÓGICA ORÇAMENTOS =================
   const salvarOrcamento = async (e: React.FormEvent) => {
     e.preventDefault();
     const dadosSalvar = {
@@ -182,7 +200,6 @@ export default function Home() {
     await supabase.from('orcamentos').update({ status: novoStatus }).eq('id', id);
   };
 
-  // Agrupar orçamentos por serviço para o comparador
   const orcamentosAgrupados = orcamentos.reduce((acc, orc) => {
     acc[orc.servico] = acc[orc.servico] || [];
     acc[orc.servico].push(orc);
@@ -277,10 +294,6 @@ export default function Home() {
   });
 
   // ================= 2. LÓGICA CRM (Clientes) =================
-  const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
-  const [editandoCliId, setEditandoCliId] = useState<string | null>(null);
-  const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
-
   const salvarCliente = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data, error } = await supabase.from('clientes').insert([novoCliente]).select();
@@ -310,10 +323,6 @@ export default function Home() {
   };
 
   // ================= LÓGICA FORNECEDORES =================
-  const [novoFornecedor, setNovoFornecedor] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
-  const [editandoFornId, setEditandoFornId] = useState<string | null>(null);
-  const [tempEditForn, setTempEditForn] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
-
   const salvarFornecedor = async (e: React.FormEvent) => {
     e.preventDefault();
     const { data, error } = await supabase.from('fornecedores').insert([novoFornecedor]).select();
@@ -881,7 +890,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* COMPARADOR DE ORÇAMENTOS (NOVO) */}
+        {/* COMPARADOR DE ORÇAMENTOS */}
         {abaAtiva === 'orcamentos' && (
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">

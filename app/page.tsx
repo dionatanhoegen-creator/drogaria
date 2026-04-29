@@ -45,13 +45,14 @@ const defaultKanbanCards = [
 
 export default function Home() {
   const [saldoEmConta, setSaldoEmConta] = useState<string>('24000000');
-  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes' | 'fornecedores'>('kanban');
+  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes' | 'fornecedores' | 'orcamentos'>('kanban');
 
   // ================= ESTADOS CONECTADOS =================
   const [contasAPagar, setContasAPagar] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [cards, setCards] = useState<any[]>([]);
   const [fornecedores, setFornecedores] = useState<any[]>([]);
+  const [orcamentos, setOrcamentos] = useState<any[]>([]); // NOVO: Orçamentos
 
   const [dataInauguracao, setDataInauguracao] = useState('');
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
@@ -74,10 +75,12 @@ export default function Home() {
       const { data: fornDB } = await supabase.from('fornecedores').select('*').order('created_at', { ascending: false });
       if (fornDB) setFornecedores(fornDB);
 
-      const { data: cardsDB, error } = await supabase.from('kanban_cards').select('*');
-      if (error) {
-        console.error("Erro ao carregar Kanban:", error);
-      } else if (cardsDB && cardsDB.length > 0) {
+      // NOVO: Busca Orçamentos
+      const { data: orcaDB } = await supabase.from('orcamentos').select('*').order('created_at', { ascending: false });
+      if (orcaDB) setOrcamentos(orcaDB);
+
+      const { data: cardsDB } = await supabase.from('kanban_cards').select('*');
+      if (cardsDB && cardsDB.length > 0) {
         setCards(cardsDB);
       } else {
         const { data: inseridos } = await supabase.from('kanban_cards').insert(defaultKanbanCards).select();
@@ -133,11 +136,7 @@ export default function Home() {
     URL.revokeObjectURL(url);
   };
 
-  // ================= LÓGICA FINANCEIRA =================
-  const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
-  const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
-
+  // ================= FORMATADORES E CONVERSORES =================
   const maskCurrency = (value: string) => {
     let v = value.replace(/\D/g, ''); 
     if (v === '') return '';
@@ -152,6 +151,46 @@ export default function Home() {
     return Number(value.replace(/\./g, '').replace(',', '.'));
   };
 
+  // ================= LÓGICA ORÇAMENTOS (NOVO) =================
+  const [novoOrcamento, setNovoOrcamento] = useState({ servico: '', fornecedor: '', valor: '', prazo: '', pagamento: '', diferenciais: '' });
+
+  const salvarOrcamento = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const dadosSalvar = {
+      servico: novoOrcamento.servico,
+      fornecedor: novoOrcamento.fornecedor,
+      valor_num: parseCurrency(maskCurrency(novoOrcamento.valor)),
+      prazo: novoOrcamento.prazo,
+      pagamento: novoOrcamento.pagamento,
+      diferenciais: novoOrcamento.diferenciais
+    };
+
+    const { data, error } = await supabase.from('orcamentos').insert([dadosSalvar]).select();
+    if (error) alert("Erro ao salvar orçamento: " + error.message);
+    else if (data) setOrcamentos([...orcamentos, ...data]);
+    setNovoOrcamento({ servico: '', fornecedor: '', valor: '', prazo: '', pagamento: '', diferenciais: '' });
+  };
+
+  const excluirOrcamento = async (id: string) => {
+    const { error } = await supabase.from('orcamentos').delete().eq('id', id);
+    if (error) alert("Erro ao excluir orçamento: " + error.message);
+    else setOrcamentos(orcamentos.filter(o => o.id !== id));
+  };
+
+  const atualizarStatusOrcamento = async (id: string, novoStatus: string) => {
+    setOrcamentos(orcamentos.map(o => o.id === id ? { ...o, status: novoStatus } : o));
+    await supabase.from('orcamentos').update({ status: novoStatus }).eq('id', id);
+  };
+
+  // Agrupar orçamentos por serviço para o comparador
+  const orcamentosAgrupados = orcamentos.reduce((acc, orc) => {
+    acc[orc.servico] = acc[orc.servico] || [];
+    acc[orc.servico].push(orc);
+    return acc;
+  }, {});
+
+
+  // ================= LÓGICA FINANCEIRA =================
   const salvarDespesa = async (e: React.FormEvent) => {
     e.preventDefault();
     const numParcelas = parseInt(novaConta.parcelas) || 1;
@@ -406,6 +445,7 @@ export default function Home() {
         <button onClick={() => setAbaAtiva('contas')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
         <button onClick={() => setAbaAtiva('clientes')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>👥</span> GESTÃO DE CLIENTES</button>
         <button onClick={() => setAbaAtiva('fornecedores')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'fornecedores' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>🚚</span> FORNECEDORES</button>
+        <button onClick={() => setAbaAtiva('orcamentos')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'orcamentos' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📊</span> COMPARAÇÃO ORÇAMENTOS</button>
       </div>
 
       <main className="flex-1 p-4 md:p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
@@ -838,6 +878,73 @@ export default function Home() {
                 </div>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* COMPARADOR DE ORÇAMENTOS (NOVO) */}
+        {abaAtiva === 'orcamentos' && (
+          <div className="flex flex-col gap-6">
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <div className="flex justify-between items-center mb-4 border-b pb-2 border-[#009e90]">
+                <div>
+                  <h2 className="text-lg font-bold text-[#009e90]">Registrar Orçamento</h2>
+                  <p className="text-xs text-slate-500">Ex: Digite "Fachada" no Serviço para comparar todas as propostas de Fachada juntas.</p>
+                </div>
+              </div>
+              <form onSubmit={salvarOrcamento} className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+                <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Serviço/Produto</label><input placeholder="Ex: Fachada" value={novoOrcamento.servico} onChange={e => setNovoOrcamento({...novoOrcamento, servico: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required /></div>
+                <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Fornecedor</label><input placeholder="Nome da Empresa" value={novoOrcamento.fornecedor} onChange={e => setNovoOrcamento({...novoOrcamento, fornecedor: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required /></div>
+                <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Valor Final (R$)</label><input placeholder="0,00" value={maskCurrency(novoOrcamento.valor)} onChange={e => setNovoOrcamento({...novoOrcamento, valor: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none font-bold text-right" required /></div>
+                <div><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Prazo de Entrega</label><input placeholder="Ex: 30 dias" value={novoOrcamento.prazo} onChange={e => setNovoOrcamento({...novoOrcamento, prazo: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" /></div>
+                
+                <div className="md:col-span-2"><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Condições de Pagamento</label><input placeholder="Ex: 50% entrada + 30/60 dias" value={novoOrcamento.pagamento} onChange={e => setNovoOrcamento({...novoOrcamento, pagamento: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" /></div>
+                <div className="md:col-span-2"><label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Diferenciais ou O que Faltou</label><div className="flex gap-2"><input placeholder="Ex: Frete grátis, Não tem elétrica..." value={novoOrcamento.diferenciais} onChange={e => setNovoOrcamento({...novoOrcamento, diferenciais: e.target.value})} className="w-full border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" /><button type="submit" className="bg-[#e8601c] hover:bg-[#d05315] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all shrink-0">ADICIONAR</button></div></div>
+              </form>
+            </section>
+
+            {/* Listagem Comparativa */}
+            {Object.keys(orcamentosAgrupados).length === 0 && <p className="text-center text-slate-400 italic">Nenhum orçamento para comparar ainda.</p>}
+            
+            {Object.keys(orcamentosAgrupados).map(servico => (
+              <div key={servico} className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden mb-4">
+                <div className="bg-slate-100 p-3 border-b border-slate-200">
+                  <h3 className="font-black text-slate-700 text-lg flex items-center gap-2">🛒 Comparativo: <span className="text-[#009e90]">{servico}</span></h3>
+                </div>
+                <div className="p-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {orcamentosAgrupados[servico].map((orc: any) => (
+                    <div key={orc.id} className={`p-4 rounded-xl border-2 flex flex-col relative transition-all ${orc.status === 'Aprovado' ? 'border-[#009e90] bg-[#eaf8f1]' : orc.status === 'Recusado' ? 'border-red-200 bg-red-50 opacity-60' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
+                      
+                      <div className="flex justify-between items-start mb-2">
+                        <span className="font-bold text-slate-800 text-lg">{orc.fornecedor}</span>
+                        <select 
+                          value={orc.status} 
+                          onChange={(e) => atualizarStatusOrcamento(orc.id, e.target.value)}
+                          className={`text-[9px] font-bold uppercase px-2 py-1 rounded-full outline-none cursor-pointer border ${orc.status === 'Aprovado' ? 'bg-[#009e90] text-white border-[#009e90]' : orc.status === 'Recusado' ? 'bg-red-500 text-white border-red-500' : 'bg-yellow-100 text-yellow-700 border-yellow-200'}`}
+                        >
+                          <option value="Em Análise">Em Análise</option>
+                          <option value="Aprovado">Aprovado</option>
+                          <option value="Recusado">Recusado</option>
+                        </select>
+                      </div>
+                      
+                      <p className="text-2xl font-black text-[#e8601c] mb-3">R$ {maskCurrency(orc.valor_num.toString() + '00')}</p>
+                      
+                      <div className="space-y-1.5 text-xs flex-1">
+                        <p><span className="font-bold text-slate-400 uppercase">Prazo:</span> <span className="font-medium text-slate-700">{orc.prazo || '-'}</span></p>
+                        <p><span className="font-bold text-slate-400 uppercase">Pagamento:</span> <span className="font-medium text-slate-700">{orc.pagamento || '-'}</span></p>
+                        <div className="bg-white/50 p-2 rounded border border-slate-100 mt-2">
+                          <span className="font-bold text-slate-400 uppercase text-[9px] block">Detalhes:</span>
+                          <span className="font-medium text-slate-600">{orc.diferenciais || '-'}</span>
+                        </div>
+                      </div>
+
+                      <button onClick={() => excluirOrcamento(orc.id)} className="absolute bottom-4 right-4 text-red-400 text-[10px] font-bold hover:underline">Excluir</button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+
           </div>
         )}
 

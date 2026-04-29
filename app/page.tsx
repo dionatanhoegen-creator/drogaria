@@ -51,12 +51,10 @@ export default function Home() {
   const [contasAPagar, setContasAPagar] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [cards, setCards] = useState<any[]>([]);
-  const [fornecedores, setFornecedores] = useState<any[]>([]); // NOVO: Fornecedores
+  const [fornecedores, setFornecedores] = useState<any[]>([]);
 
   const [dataInauguracao, setDataInauguracao] = useState('');
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
-  
-  // NOVO: Estado para gerenciar o "Arrastar" do Kanban
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
 
   // ================= BUSCA DE DADOS =================
@@ -100,6 +98,39 @@ export default function Home() {
       ...prev,
       [id]: !prev[id]
     }));
+  };
+
+  // ================= EXPORTAÇÃO PARA EXCEL =================
+  const exportarParaExcel = (dados: any[], colunas: {key: string, label: string}[], titulo: string) => {
+    const tableHeader = colunas.map(c => `<th style="background-color: #009e90; color: white; padding: 10px; border: 1px solid #ddd;">${c.label}</th>`).join('');
+    
+    const tableRows = dados.map(row => 
+      `<tr>${colunas.map(c => `<td style="padding: 8px; border: 1px solid #ddd; text-align: left;">${row[c.key] || ''}</td>`).join('')}</tr>`
+    ).join('');
+    
+    const html = `
+      <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+      <head>
+        <meta charset="utf-8" />
+        <style> table { border-collapse: collapse; width: 100%; font-family: sans-serif; } </style>
+      </head>
+      <body>
+        <h2 style="color: #e8601c;">Relatório - ${titulo}</h2>
+        <table>
+          <thead><tr>${tableHeader}</tr></thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob(['\ufeff', html], { type: 'application/vnd.ms-excel' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Relatorio_${titulo.replace(/\s+/g, '_')}.xls`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   // ================= LÓGICA FINANCEIRA =================
@@ -239,7 +270,7 @@ export default function Home() {
     else setClientes(clientes.filter(c => c.id !== id));
   };
 
-  // ================= LÓGICA FORNECEDORES (NOVO) =================
+  // ================= LÓGICA FORNECEDORES =================
   const [novoFornecedor, setNovoFornecedor] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
   const [editandoFornId, setEditandoFornId] = useState<string | null>(null);
   const [tempEditForn, setTempEditForn] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
@@ -305,30 +336,24 @@ export default function Home() {
     else setCards(cards.filter(c => c.id !== id));
   };
 
-  // NOVO: Lógica de arrastar e soltar (Drag and Drop nativo)
   const handleDrop = async (targetCardId: string, area: string) => {
     if (!draggedCardId || draggedCardId === targetCardId) return;
 
-    // Filtra e ordena os cards da coluna atual
     const areaCards = cards.filter(c => c.area === area).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
     const draggedIdx = areaCards.findIndex(c => c.id === draggedCardId);
     const targetIdx = areaCards.findIndex(c => c.id === targetCardId);
 
     if (draggedIdx === -1 || targetIdx === -1) return;
 
-    // Reordena o array visualmente
     const newAreaCards = Array.from(areaCards);
     const [removed] = newAreaCards.splice(draggedIdx, 1);
     newAreaCards.splice(targetIdx, 0, removed);
 
-    // Atualiza o campo 'ordem'
     const updatedCards = newAreaCards.map((c, idx) => ({ ...c, ordem: idx }));
 
-    // Atualiza estado local
     const otherCards = cards.filter(c => c.area !== area);
     setCards([...otherCards, ...updatedCards]);
 
-    // Atualiza Supabase em background
     for (const c of updatedCards) {
       await supabase.from('kanban_cards').update({ ordem: c.ordem }).eq('id', c.id);
     }
@@ -456,14 +481,13 @@ export default function Home() {
                   <div className="overflow-y-auto pr-1 flex-1 space-y-2">
                     {cards
                       .filter(c => c.area === areaColuna)
-                      .sort((a, b) => (a.ordem || 0) - (b.ordem || 0)) // Ordena visualmente pela 'ordem'
+                      .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
                       .map(card => {
                         const isExpanded = cardsExpandidos[card.id] || false;
 
                         return (
                           <div 
                             key={card.id} 
-                            // Propriedades do Drag and Drop
                             draggable={!card.bloqueado}
                             onDragStart={() => setDraggedCardId(card.id)}
                             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
@@ -471,7 +495,6 @@ export default function Home() {
                             className={`p-3 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col ${card.status === 'Concluído' ? 'border-l-[#009e90]' : 'border-l-[#e8601c]'} ${!card.bloqueado ? 'cursor-move' : ''}`}
                           >
                             
-                            {/* CABEÇALHO DO CARD (MINIMIZADO) */}
                             <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleCard(card.id)}>
                               <div className="flex items-center gap-2 overflow-hidden">
                                  <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full whitespace-nowrap ${getTagColor(card.area)}`}>{card.status}</span>
@@ -485,7 +508,6 @@ export default function Home() {
                               </div>
                             </div>
                             
-                            {/* CONTEÚDO EXPANDIDO */}
                             {isExpanded && (
                               <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-2">
                                 <textarea 
@@ -684,7 +706,16 @@ export default function Home() {
         {abaAtiva === 'clientes' && (
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90] text-[#009e90]">Novo Paciente / Cliente VIP</h2>
+              <div className="flex justify-between items-center mb-4 border-b pb-2 border-[#009e90]">
+                <h2 className="text-lg font-bold text-[#009e90]">Novo Paciente / Cliente VIP</h2>
+                {/* BOTÃO EXPORTAR EXCEL (CLIENTES) */}
+                <button 
+                  onClick={() => exportarParaExcel(clientes, [{key:'nome',label:'Nome'}, {key:'whatsapp',label:'WhatsApp'}, {key:'tipo',label:'Medicação'}, {key:'compras',label:'Compras'}, {key:'atendimento',label:'Perfil de Atendimento'}], 'Clientes_VIP')}
+                  className="bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 hover:bg-[#009e90] hover:text-white transition-all px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
+                >
+                  📥 Exportar Excel
+                </button>
+              </div>
               <form onSubmit={salvarCliente} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input placeholder="Nome do Cliente" value={novoCliente.nome} onChange={e => setNovoCliente({...novoCliente, nome: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required />
                 <input placeholder="WhatsApp (DDD+Número)" value={novoCliente.whatsapp} onChange={e => setNovoCliente({...novoCliente, whatsapp: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required />
@@ -745,11 +776,20 @@ export default function Home() {
           </div>
         )}
 
-        {/* FORNECEDORES (NOVO) */}
+        {/* FORNECEDORES */}
         {abaAtiva === 'fornecedores' && (
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90] text-[#009e90]">Novo Fornecedor</h2>
+              <div className="flex justify-between items-center mb-4 border-b pb-2 border-[#009e90]">
+                <h2 className="text-lg font-bold text-[#009e90]">Novo Fornecedor</h2>
+                {/* BOTÃO EXPORTAR EXCEL (FORNECEDORES) */}
+                <button 
+                  onClick={() => exportarParaExcel(fornecedores, [{key:'nome',label:'Fornecedor'}, {key:'contato',label:'Contato'}, {key:'compras',label:'O que vendem?'}, {key:'observacoes',label:'Observações Gerais'}], 'Fornecedores')}
+                  className="bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 hover:bg-[#009e90] hover:text-white transition-all px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
+                >
+                  📥 Exportar Excel
+                </button>
+              </div>
               <form onSubmit={salvarFornecedor} className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <input placeholder="Nome do Fornecedor" value={novoFornecedor.nome} onChange={e => setNovoFornecedor({...novoFornecedor, nome: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required />
                 <input placeholder="Contato (Telefone / Email)" value={novoFornecedor.contato} onChange={e => setNovoFornecedor({...novoFornecedor, contato: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" />

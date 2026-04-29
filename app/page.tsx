@@ -10,57 +10,57 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 
 // ================= DADOS PADRÃO DO KANBAN =================
 const defaultKanbanCards = [
-  { titulo: 'CNPJ (JUCEPAR)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Inscrição Municipal', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Alvará Prefeitura', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'CRF-PR', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Anvisa (AFE)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'PGRSS', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Bombeiros', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Contratação RT', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Folha de Pagamento', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Treinamento Equipe', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Uniformes', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Escala de Trabalho', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '1. Desmobilização (Limpeza/Caçamba)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '2. Infra Bruta (Elétrica/Lógica/Drenos)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '3. Gesso / Forro (Recortes)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '4. Pintura e Massa Corrida', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '5. Fachada (ACM/Vidro/Iluminação)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '6. Climatização (Evaporadoras)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '7. Elétrica Fina (Tomadas/Luminárias)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '8. Instalação de Piso e Rodapé', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '9. Mobiliário (Gôndolas/Balcão/Caixa)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: '10. TI (Computadores/PDV/Impressoras)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Equipamentos', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Sistema (PDV)', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Estoque Inicial', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Fornecedores Base', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Tripasse', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Aluguel', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Contabilidade', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Fluxo de Caixa', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
-  { titulo: 'Parcelamentos', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false },
+  { titulo: 'CNPJ (JUCEPAR)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 0 },
+  { titulo: 'Inscrição Municipal', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 1 },
+  { titulo: 'Alvará Prefeitura', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 2 },
+  { titulo: 'CRF-PR', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 3 },
+  { titulo: 'Anvisa (AFE)', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 4 },
+  { titulo: 'PGRSS', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 5 },
+  { titulo: 'Bombeiros', area: 'Administrativo', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 6 },
+  { titulo: 'Contratação RT', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 0 },
+  { titulo: 'Folha de Pagamento', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 1 },
+  { titulo: 'Treinamento Equipe', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 2 },
+  { titulo: 'Uniformes', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 3 },
+  { titulo: 'Escala de Trabalho', area: 'RH', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 4 },
+  { titulo: '1. Desmobilização (Limpeza/Caçamba)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 0 },
+  { titulo: '2. Infra Bruta (Elétrica/Lógica/Drenos)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 1 },
+  { titulo: '3. Gesso / Forro (Recortes)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 2 },
+  { titulo: '4. Pintura e Massa Corrida', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 3 },
+  { titulo: '5. Fachada (ACM/Vidro/Iluminação)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 4 },
+  { titulo: '6. Climatização (Evaporadoras)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 5 },
+  { titulo: '7. Elétrica Fina (Tomadas/Luminárias)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 6 },
+  { titulo: '8. Instalação de Piso e Rodapé', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 7 },
+  { titulo: '9. Mobiliário (Gôndolas/Balcão/Caixa)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 8 },
+  { titulo: '10. TI (Computadores/PDV/Impressoras)', area: 'Infraestrutura', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 9 },
+  { titulo: 'Equipamentos', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 0 },
+  { titulo: 'Sistema (PDV)', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 1 },
+  { titulo: 'Estoque Inicial', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 2 },
+  { titulo: 'Fornecedores Base', area: 'Suprimentos', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 3 },
+  { titulo: 'Tripasse', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 0 },
+  { titulo: 'Aluguel', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 1 },
+  { titulo: 'Contabilidade', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 2 },
+  { titulo: 'Fluxo de Caixa', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 3 },
+  { titulo: 'Parcelamentos', area: 'Financeiro', inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: 4 },
 ];
 
 export default function Home() {
   const [saldoEmConta, setSaldoEmConta] = useState<string>('24000000');
-  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes'>('kanban');
+  const [abaAtiva, setAbaAtiva] = useState<'contas' | 'kanban' | 'clientes' | 'fornecedores'>('kanban');
 
   // ================= ESTADOS CONECTADOS =================
   const [contasAPagar, setContasAPagar] = useState<any[]>([]);
   const [clientes, setClientes] = useState<any[]>([]);
   const [cards, setCards] = useState<any[]>([]);
+  const [fornecedores, setFornecedores] = useState<any[]>([]); // NOVO: Fornecedores
 
-  // Estado para a Data de Inauguração (Lendo da memória local)
   const [dataInauguracao, setDataInauguracao] = useState('');
-  
-  // Estado para controlar quais cards do Kanban estão expandidos
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
+  
+  // NOVO: Estado para gerenciar o "Arrastar" do Kanban
+  const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
 
-  // ================= BUSCA DE DADOS (SUPABASE & LOCALSTORAGE) =================
+  // ================= BUSCA DE DADOS =================
   useEffect(() => {
-    // Carrega a data de inauguração salva no navegador
     const dataSalva = localStorage.getItem('dataInauguracao');
     if (dataSalva) {
       setDataInauguracao(dataSalva);
@@ -72,6 +72,9 @@ export default function Home() {
 
       const { data: clientesDB } = await supabase.from('clientes').select('*').order('created_at', { ascending: false });
       if (clientesDB) setClientes(clientesDB);
+
+      const { data: fornDB } = await supabase.from('fornecedores').select('*').order('created_at', { ascending: false });
+      if (fornDB) setFornecedores(fornDB);
 
       const { data: cardsDB, error } = await supabase.from('kanban_cards').select('*');
       if (error) {
@@ -86,14 +89,12 @@ export default function Home() {
     carregarDados();
   }, []);
 
-  // Handler para salvar a data no estado e na memória local
   const atualizarDataInauguracao = (e: React.ChangeEvent<HTMLInputElement>) => {
     const novaData = e.target.value;
     setDataInauguracao(novaData);
     localStorage.setItem('dataInauguracao', novaData);
   };
 
-  // Handler para minimizar/expandir o card
   const toggleCard = (id: string) => {
     setCardsExpandidos(prev => ({
       ...prev,
@@ -205,7 +206,7 @@ export default function Home() {
     };
   });
 
-  // ================= 2. LÓGICA CRM =================
+  // ================= 2. LÓGICA CRM (Clientes) =================
   const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   const [editandoCliId, setEditandoCliId] = useState<string | null>(null);
   const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
@@ -238,12 +239,47 @@ export default function Home() {
     else setClientes(clientes.filter(c => c.id !== id));
   };
 
+  // ================= LÓGICA FORNECEDORES (NOVO) =================
+  const [novoFornecedor, setNovoFornecedor] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
+  const [editandoFornId, setEditandoFornId] = useState<string | null>(null);
+  const [tempEditForn, setTempEditForn] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
+
+  const salvarFornecedor = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const { data, error } = await supabase.from('fornecedores').insert([novoFornecedor]).select();
+    if (error) alert("Erro ao salvar fornecedor: " + error.message);
+    else if (data) setFornecedores([...fornecedores, ...data]);
+    setNovoFornecedor({ nome: '', contato: '', compras: '', observacoes: '' });
+  };
+
+  const iniciarEdicaoForn = (forn: any) => {
+    setEditandoFornId(forn.id);
+    setTempEditForn({ nome: forn.nome, contato: forn.contato, compras: forn.compras, observacoes: forn.observacoes });
+  };
+
+  const confirmarEdicaoForn = async (id: string) => {
+    const { error } = await supabase.from('fornecedores').update(tempEditForn).eq('id', id);
+    if (error) alert("Erro ao editar fornecedor: " + error.message);
+    else {
+      setFornecedores(fornecedores.map(f => f.id === id ? { ...f, ...tempEditForn } : f));
+      setEditandoFornId(null);
+    }
+  };
+
+  const excluirFornecedor = async (id: string) => {
+    const { error } = await supabase.from('fornecedores').delete().eq('id', id);
+    if (error) alert("Erro ao excluir fornecedor: " + error.message);
+    else setFornecedores(fornecedores.filter(f => f.id !== id));
+  };
+
+
   // ================= 3. LÓGICA KANBAN =================
   const colunasKanban = ['A Fazer', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
 
   const adicionarCard = async (colunaArea: string) => {
-    const novoCard = { titulo: 'Nova Tarefa', area: colunaArea, inicio: null, fim: null, status: 'A Fazer', bloqueado: false };
+    const novaOrdem = cards.filter(c => c.area === colunaArea).length;
+    const novoCard = { titulo: 'Nova Tarefa', area: colunaArea, inicio: null, fim: null, status: 'A Fazer', bloqueado: false, ordem: novaOrdem };
     const { data, error } = await supabase.from('kanban_cards').insert([novoCard]).select();
     if (error) alert("Erro ao criar tarefa: " + error.message);
     else if (data) {
@@ -267,6 +303,36 @@ export default function Home() {
     const { error } = await supabase.from('kanban_cards').delete().eq('id', id);
     if (error) alert("Erro ao excluir tarefa: " + error.message);
     else setCards(cards.filter(c => c.id !== id));
+  };
+
+  // NOVO: Lógica de arrastar e soltar (Drag and Drop nativo)
+  const handleDrop = async (targetCardId: string, area: string) => {
+    if (!draggedCardId || draggedCardId === targetCardId) return;
+
+    // Filtra e ordena os cards da coluna atual
+    const areaCards = cards.filter(c => c.area === area).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+    const draggedIdx = areaCards.findIndex(c => c.id === draggedCardId);
+    const targetIdx = areaCards.findIndex(c => c.id === targetCardId);
+
+    if (draggedIdx === -1 || targetIdx === -1) return;
+
+    // Reordena o array visualmente
+    const newAreaCards = Array.from(areaCards);
+    const [removed] = newAreaCards.splice(draggedIdx, 1);
+    newAreaCards.splice(targetIdx, 0, removed);
+
+    // Atualiza o campo 'ordem'
+    const updatedCards = newAreaCards.map((c, idx) => ({ ...c, ordem: idx }));
+
+    // Atualiza estado local
+    const otherCards = cards.filter(c => c.area !== area);
+    setCards([...otherCards, ...updatedCards]);
+
+    // Atualiza Supabase em background
+    for (const c of updatedCards) {
+      await supabase.from('kanban_cards').update({ ordem: c.ordem }).eq('id', c.id);
+    }
+    setDraggedCardId(null);
   };
 
   const getTagColor = (area: string) => {
@@ -314,11 +380,12 @@ export default function Home() {
         <button onClick={() => setAbaAtiva('kanban')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'kanban' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>📋</span> BOARD OPERACIONAL</button>
         <button onClick={() => setAbaAtiva('contas')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'contas' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>💸</span> CONTAS A PAGAR</button>
         <button onClick={() => setAbaAtiva('clientes')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'clientes' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>👥</span> GESTÃO DE CLIENTES</button>
+        <button onClick={() => setAbaAtiva('fornecedores')} className={`shrink-0 flex items-center gap-2 px-5 py-2 rounded-full text-sm font-bold transition-all whitespace-nowrap ${abaAtiva === 'fornecedores' ? 'bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 shadow-sm' : 'text-gray-500 hover:bg-slate-100'}`}><span>🚚</span> FORNECEDORES</button>
       </div>
 
       <main className="flex-1 p-4 md:p-6 max-w-[1400px] mx-auto w-full flex flex-col gap-6">
         
-        {/* RESUMO SIMPLIFICADO NO TOPO - AGORA APENAS NA ABA DE CONTAS */}
+        {/* RESUMO SIMPLIFICADO NO TOPO - APENAS NA ABA DE CONTAS */}
         {abaAtiva === 'contas' && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div className="bg-[#eaf8f1] p-5 rounded-2xl border border-[#009e90]/30 shadow-sm">
@@ -354,7 +421,7 @@ export default function Home() {
             <div className="flex flex-col md:flex-row justify-between md:items-center mb-6 border-b pb-4 border-[#009e90] gap-4">
               <div>
                 <h2 className="text-lg font-bold text-slate-800">Board Principal de Implantação</h2>
-                <p className="text-xs text-slate-500 mt-1">Clique num cartão para abrir os detalhes ou mova as tarefas.</p>
+                <p className="text-xs text-slate-500 mt-1">Destrave o cadeado e arraste o post-it para priorizar.</p>
               </div>
               <div className="flex flex-wrap gap-2 items-center">
                 <div className="flex items-center gap-2 bg-slate-50 p-2 rounded-xl border border-slate-200 flex-1 md:flex-none">
@@ -387,62 +454,70 @@ export default function Home() {
                   </h3>
                   
                   <div className="overflow-y-auto pr-1 flex-1 space-y-2">
-                    {cards.filter(c => c.area === areaColuna).map(card => {
-                      const isExpanded = cardsExpandidos[card.id] || false;
+                    {cards
+                      .filter(c => c.area === areaColuna)
+                      .sort((a, b) => (a.ordem || 0) - (b.ordem || 0)) // Ordena visualmente pela 'ordem'
+                      .map(card => {
+                        const isExpanded = cardsExpandidos[card.id] || false;
 
-                      return (
-                        <div key={card.id} className={`p-3 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col ${card.status === 'Concluído' ? 'border-l-[#009e90]' : 'border-l-[#e8601c]'}`}>
-                          
-                          {/* CABEÇALHO DO CARD (MINIMIZADO) */}
+                        return (
                           <div 
-                            className="flex justify-between items-center cursor-pointer"
-                            onClick={() => toggleCard(card.id)}
+                            key={card.id} 
+                            // Propriedades do Drag and Drop
+                            draggable={!card.bloqueado}
+                            onDragStart={() => setDraggedCardId(card.id)}
+                            onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
+                            onDrop={(e) => { e.preventDefault(); handleDrop(card.id, card.area); }}
+                            className={`p-3 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col ${card.status === 'Concluído' ? 'border-l-[#009e90]' : 'border-l-[#e8601c]'} ${!card.bloqueado ? 'cursor-move' : ''}`}
                           >
-                            <div className="flex items-center gap-2 overflow-hidden">
-                               <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full whitespace-nowrap ${getTagColor(card.area)}`}>{card.status}</span>
-                               <span className={`text-xs font-bold truncate ${card.status === 'Concluído' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
-                                 {card.titulo || 'Nova Tarefa'}
-                               </span>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                               <button onClick={(e) => { e.stopPropagation(); atualizarCard(card.id, 'bloqueado', !card.bloqueado); }} className="text-slate-300 hover:text-slate-500 text-xs">{card.bloqueado ? '🔒' : '🔓'}</button>
-                               <span className="text-slate-400 text-[10px] ml-1">{isExpanded ? '▲' : '▼'}</span>
-                            </div>
-                          </div>
-                          
-                          {/* CONTEÚDO EXPANDIDO */}
-                          {isExpanded && (
-                            <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-2">
-                              <textarea 
-                                disabled={card.bloqueado}
-                                value={card.titulo} 
-                                onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
-                                className={`font-bold text-sm w-full bg-slate-50 p-2 rounded-lg resize-none outline-none border border-slate-200 focus:border-[#009e90] ${card.status === 'Concluído' ? 'text-slate-400' : 'text-slate-800'}`}
-                                rows={2}
-                                placeholder="Nome da Tarefa..."
-                              />
-                              
-                              <div className="grid grid-cols-2 gap-2 mt-1">
-                                <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio || ''} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
-                                <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim || ''} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
+                            
+                            {/* CABEÇALHO DO CARD (MINIMIZADO) */}
+                            <div className="flex justify-between items-center cursor-pointer" onClick={() => toggleCard(card.id)}>
+                              <div className="flex items-center gap-2 overflow-hidden">
+                                 <span className={`text-[8px] font-bold uppercase px-1.5 py-0.5 rounded-full whitespace-nowrap ${getTagColor(card.area)}`}>{card.status}</span>
+                                 <span className={`text-xs font-bold truncate ${card.status === 'Concluído' ? 'line-through text-slate-400' : 'text-slate-800'}`}>
+                                   {card.titulo || 'Nova Tarefa'}
+                                 </span>
                               </div>
-                              
-                              <div className="flex justify-between items-center mt-2">
-                                <select 
+                              <div className="flex items-center gap-2 shrink-0">
+                                 <button onClick={(e) => { e.stopPropagation(); atualizarCard(card.id, 'bloqueado', !card.bloqueado); }} className="text-slate-300 hover:text-slate-500 text-xs">{card.bloqueado ? '🔒' : '🔓'}</button>
+                                 <span className="text-slate-400 text-[10px] ml-1">{isExpanded ? '▲' : '▼'}</span>
+                              </div>
+                            </div>
+                            
+                            {/* CONTEÚDO EXPANDIDO */}
+                            {isExpanded && (
+                              <div className="flex flex-col gap-2 mt-3 pt-3 border-t border-slate-100 animate-in fade-in slide-in-from-top-2">
+                                <textarea 
                                   disabled={card.bloqueado}
-                                  value={card.status} 
-                                  onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
-                                  className={`text-[10px] font-bold p-1.5 rounded-lg border outline-none cursor-pointer w-[65%] ${card.status === 'Concluído' ? 'bg-[#eaf8f1] text-[#009e90] border-[#009e90]/20' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
-                                >
-                                  {colunasKanban.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                                </select>
-                                {!card.bloqueado && <button onClick={() => excluirCard(card.id)} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
+                                  value={card.titulo} 
+                                  onChange={(e) => atualizarCard(card.id, 'titulo', e.target.value)}
+                                  className={`font-bold text-sm w-full bg-slate-50 p-2 rounded-lg resize-none outline-none border border-slate-200 focus:border-[#009e90] ${card.status === 'Concluído' ? 'text-slate-400' : 'text-slate-800'}`}
+                                  rows={2}
+                                  placeholder="Nome da Tarefa..."
+                                />
+                                
+                                <div className="grid grid-cols-2 gap-2 mt-1">
+                                  <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Início</span><input disabled={card.bloqueado} type="date" value={card.inicio || ''} onChange={(e) => atualizarCard(card.id, 'inicio', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
+                                  <div className="flex flex-col"><span className="text-[8px] font-bold text-slate-400 uppercase">Previsão</span><input disabled={card.bloqueado} type="date" value={card.fim || ''} onChange={(e) => atualizarCard(card.id, 'fim', e.target.value)} className="text-[10px] border-b border-slate-200 outline-none text-slate-700 bg-transparent"/></div>
+                                </div>
+                                
+                                <div className="flex justify-between items-center mt-2">
+                                  <select 
+                                    disabled={card.bloqueado}
+                                    value={card.status} 
+                                    onChange={(e) => atualizarCard(card.id, 'status', e.target.value)}
+                                    className={`text-[10px] font-bold p-1.5 rounded-lg border outline-none cursor-pointer w-[65%] ${card.status === 'Concluído' ? 'bg-[#eaf8f1] text-[#009e90] border-[#009e90]/20' : 'bg-slate-50 text-slate-600 border-slate-200'}`}
+                                  >
+                                    {colunasKanban.map(opt => <option key={opt} value={opt}>{opt}</option>)}
+                                  </select>
+                                  {!card.bloqueado && <button onClick={() => excluirCard(card.id)} className="text-red-400 text-[10px] font-bold hover:underline">Excluir</button>}
+                                </div>
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                        </div>
-                      );
+                          </div>
+                        );
                     })}
                   </div>
 
@@ -487,7 +562,6 @@ export default function Home() {
               </form>
             </section>
 
-            {/* TABELA DE LANÇAMENTOS - AGORA COM SANFONA (DETAILS) */}
             <details className="bg-white rounded-2xl shadow-sm border border-slate-200 group" open>
               <summary className="p-4 font-bold text-slate-700 cursor-pointer hover:bg-slate-50 outline-none border-b border-transparent group-open:border-slate-100 flex justify-between items-center list-none [&::-webkit-details-marker]:hidden transition-all">
                 <span className="flex items-center gap-2">
@@ -662,6 +736,62 @@ export default function Home() {
                       <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between">
                          <button onClick={() => iniciarEdicaoCli(cli)} className="text-[#009e90] font-bold text-xs hover:underline">Editar</button>
                          <button onClick={() => excluirCliente(cli.id)} className="text-red-400 font-bold text-xs hover:underline">Excluir</button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* FORNECEDORES (NOVO) */}
+        {abaAtiva === 'fornecedores' && (
+          <div className="flex flex-col gap-6">
+            <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
+              <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90] text-[#009e90]">Novo Fornecedor</h2>
+              <form onSubmit={salvarFornecedor} className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <input placeholder="Nome do Fornecedor" value={novoFornecedor.nome} onChange={e => setNovoFornecedor({...novoFornecedor, nome: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" required />
+                <input placeholder="Contato (Telefone / Email)" value={novoFornecedor.contato} onChange={e => setNovoFornecedor({...novoFornecedor, contato: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" />
+                <input placeholder="O que eles vendem?" value={novoFornecedor.compras} onChange={e => setNovoFornecedor({...novoFornecedor, compras: e.target.value})} className="border rounded-xl p-2.5 text-sm focus:border-[#009e90] outline-none" />
+                <textarea placeholder="Informações adicionais, prazos, observações..." value={novoFornecedor.observacoes} onChange={e => setNovoFornecedor({...novoFornecedor, observacoes: e.target.value})} className="border rounded-xl p-2.5 text-sm md:col-span-3 h-20 resize-none focus:border-[#009e90] outline-none" />
+                <div className="md:col-span-3 text-right"><button type="submit" className="bg-[#e8601c] hover:bg-[#d05315] text-white px-6 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all">SALVAR FORNECEDOR</button></div>
+              </form>
+            </section>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {fornecedores.length === 0 && <p className="text-slate-400 text-sm italic col-span-full text-center">Nenhum fornecedor cadastrado no momento.</p>}
+              {fornecedores.map(forn => (
+                <div key={forn.id} className="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex flex-col group hover:border-[#009e90] transition-all">
+                  
+                  {editandoFornId === forn.id ? (
+                    <div className="flex flex-col gap-3 flex-1">
+                       <input value={tempEditForn.nome} onChange={e => setTempEditForn({...tempEditForn, nome: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90]" placeholder="Nome do Fornecedor"/>
+                       <input value={tempEditForn.contato} onChange={e => setTempEditForn({...tempEditForn, contato: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90]" placeholder="Contato"/>
+                       <input value={tempEditForn.compras} onChange={e => setTempEditForn({...tempEditForn, compras: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90]" placeholder="O que vendem?"/>
+                       <textarea value={tempEditForn.observacoes} onChange={e => setTempEditForn({...tempEditForn, observacoes: e.target.value})} className="border p-2 rounded-lg text-sm outline-none focus:border-[#009e90] resize-none h-20" placeholder="Observações"/>
+                       <div className="flex gap-2 mt-2">
+                         <button onClick={() => confirmarEdicaoForn(forn.id)} className="bg-[#009e90] text-white font-bold text-xs px-3 py-2 rounded-lg flex-1 hover:bg-[#007a6f]">Salvar</button>
+                         <button onClick={() => setEditandoFornId(null)} className="bg-slate-200 text-slate-700 font-bold text-xs px-3 py-2 rounded-lg flex-1 hover:bg-slate-300">Cancelar</button>
+                       </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex justify-between items-start mb-3 border-b pb-3 border-slate-100">
+                        <h3 className="font-black text-[#009e90] text-lg">{forn.nome}</h3>
+                        <span className="bg-[#eaf8f1] text-[#009e90] px-2 py-1 rounded-md text-[10px] font-bold uppercase">Fornecedor</span>
+                      </div>
+                      <div className="space-y-2 text-xs flex-1">
+                        <p><span className="text-slate-400 font-bold uppercase tracking-tighter">Contato:</span> {forn.contato}</p>
+                        <p><span className="text-slate-400 font-bold uppercase tracking-tighter">Fornece:</span> {forn.compras}</p>
+                        <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 mt-2">
+                          <span className="text-slate-400 font-bold uppercase block mb-1">Info:</span>
+                          <p className="text-slate-600 italic">"{forn.observacoes}"</p>
+                        </div>
+                      </div>
+                      <div className="mt-4 pt-3 border-t border-slate-100 flex justify-between">
+                         <button onClick={() => iniciarEdicaoForn(forn)} className="text-[#009e90] font-bold text-xs hover:underline">Editar</button>
+                         <button onClick={() => excluirFornecedor(forn.id)} className="text-red-400 font-bold text-xs hover:underline">Excluir</button>
                       </div>
                     </>
                   )}

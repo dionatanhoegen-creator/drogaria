@@ -59,25 +59,20 @@ export default function Home() {
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
   
-  // Estado para a zona de arrastar PDFs dos orçamentos
   const [dragActive, setDragActive] = useState(false);
 
-  // Estados Financeiros
   const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
 
-  // Estados Clientes
   const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   const [editandoCliId, setEditandoCliId] = useState<string | null>(null);
   const [tempEditCli, setTempEditCli] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
 
-  // Estados Fornecedores
   const [novoFornecedor, setNovoFornecedor] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
   const [editandoFornId, setEditandoFornId] = useState<string | null>(null);
   const [tempEditForn, setTempEditForn] = useState({ nome: '', contato: '', compras: '', observacoes: '' });
 
-  // Estados Orçamentos
   const [novoOrcamento, setNovoOrcamento] = useState({ servico: '', fornecedor: '', valor: '', prazo: '', pagamento: '', diferenciais: '' });
 
   // ================= BUSCA DE DADOS =================
@@ -175,8 +170,6 @@ export default function Home() {
   };
 
   // ================= LÓGICA ORÇAMENTOS =================
-  
-  // DRAG AND DROP DO ARQUIVO
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -194,7 +187,7 @@ export default function Home() {
     
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
-      alert(`O arquivo "${file.name}" foi reconhecido!\n\nPara a leitura e preenchimento automáticos via Inteligência Artificial, é necessária a integração de uma API de Backend. \n\nPor enquanto, registre os dados manualmente no formulário abaixo.`);
+      alert(`O ficheiro "${file.name}" foi reconhecido!\n\nPara a leitura e preenchimento automáticos via Inteligência Artificial, é necessária a integração de uma API de Backend. \n\nPor enquanto, registe os dados manualmente no formulário abaixo.`);
     }
   };
 
@@ -250,7 +243,7 @@ export default function Home() {
         vencimento: dataString,
         valor_str: novaConta.valor.replace(/\D/g, ''),
         valor_num: parseCurrency(maskCurrency(novaConta.valor)),
-        mes_index: dataVenc.getMonth(), // Mantemos para não quebrar dados antigos, mas a projeção usará Ano e Mês
+        mes_index: dataVenc.getMonth(), 
         status: novaConta.status
       });
     }
@@ -309,7 +302,7 @@ export default function Home() {
 
   let caixaAcumulado = capital;
   
-  // Deduz do "Saldo Base" apenas despesas que por ventura foram datadas ANTES do marco zero (Maio 2026)
+  // Deduz do "Saldo Base" apenas despesas datadas ANTES do marco zero (Maio 2026)
   const gastosAnteriores = contasAPagar.filter(c => {
     const anoC = parseInt(c.vencimento.split('-')[0]);
     const mesC = parseInt(c.vencimento.split('-')[1]);
@@ -319,7 +312,6 @@ export default function Home() {
   caixaAcumulado -= gastosAnteriores;
 
   const projecao = mesesInfo.map((mesObj) => {
-    // Filtra as contas que pertencem EXATAMENTE ao Mês E Ano correspondente
     const detalhesMes = contasAPagar.filter(c => {
        const anoC = parseInt(c.vencimento.split('-')[0]);
        const mesC = parseInt(c.vencimento.split('-')[1]);
@@ -520,7 +512,7 @@ export default function Home() {
                 </div>
               </div>
               {projecao.slice(0, 3).map((p, idx) => (
-                <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                <div key={p.nome} className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                   <div className={`absolute top-0 left-0 w-1 h-full ${p.totalGastoRealNum > 0 ? 'bg-red-400' : p.totalOrcamentoNum > 0 ? 'bg-blue-400' : 'bg-[#e8601c]/50'}`}></div>
                   <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Previsão em {p.nome}</p>
                   <div className='flex gap-3'>
@@ -761,7 +753,7 @@ export default function Home() {
             <div className="overflow-x-auto pb-4 snap-x">
               <div className="flex gap-4 min-w-max">
                 {projecao.map((p) => (
-                  <div key={p.idx} className={`snap-start w-64 bg-white p-5 rounded-2xl border shadow-sm flex flex-col ${p.saldoFinal < 0 ? 'bg-red-50 border-red-200' : 'border-slate-200'}`}>
+                  <div key={p.nome} className={`snap-start w-64 bg-white p-5 rounded-2xl border shadow-sm flex flex-col ${p.saldoFinal < 0 ? 'bg-red-50 border-red-200' : 'border-slate-200'}`}>
                     <div className="flex justify-between items-center border-b pb-2 mb-3 border-slate-100">
                       <span className="font-black text-[#009e90] text-lg">{p.nome}</span>
                       <span className="text-[10px] bg-[#e8601c]/10 text-[#e8601c] px-2 py-1 rounded-lg font-bold">Saída R$ {maskCurrency((p.totalSaidasMes * 100).toString())}</span>

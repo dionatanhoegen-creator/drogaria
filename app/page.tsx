@@ -175,6 +175,8 @@ export default function Home() {
   };
 
   // ================= LÓGICA ORÇAMENTOS =================
+  
+  // DRAG AND DROP DO ARQUIVO
   const handleDrag = (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -248,7 +250,7 @@ export default function Home() {
         vencimento: dataString,
         valor_str: novaConta.valor.replace(/\D/g, ''),
         valor_num: parseCurrency(maskCurrency(novaConta.valor)),
-        mes_index: dataVenc.getMonth(),
+        mes_index: dataVenc.getMonth(), // Mantemos para não quebrar dados antigos, mas a projeção usará Ano e Mês
         status: novaConta.status
       });
     }
@@ -286,23 +288,43 @@ export default function Home() {
     else setContasAPagar(contasAPagar.filter(c => c.id !== id));
   };
 
-  // ================= FIX MATEMÁTICA FINANCEIRA (ABRIL) =================
+  // ================= CORREÇÃO MATEMÁTICA FINANCEIRA =================
   const capital = parseCurrency(maskCurrency(saldoEmConta));
   
+  // Projeção dinâmica baseada no Marco Zero: Maio/2026
   const mesesInfo = [
-    { nome: 'Abril', idx: 3 }, { nome: 'Maio', idx: 4 }, { nome: 'Junho', idx: 5 }, { nome: 'Julho', idx: 6 }, 
-    { nome: 'Agosto', idx: 7 }, { nome: 'Setembro', idx: 8 }, { nome: 'Outubro', idx: 9 },
-    { nome: 'Novembro', idx: 10 }, { nome: 'Dezembro', idx: 11 }
+    { nome: 'Maio/26', ano: 2026, mes: 5 },
+    { nome: 'Junho/26', ano: 2026, mes: 6 },
+    { nome: 'Julho/26', ano: 2026, mes: 7 },
+    { nome: 'Agosto/26', ano: 2026, mes: 8 },
+    { nome: 'Setembro/26', ano: 2026, mes: 9 },
+    { nome: 'Outubro/26', ano: 2026, mes: 10 },
+    { nome: 'Novembro/26', ano: 2026, mes: 11 },
+    { nome: 'Dezembro/26', ano: 2026, mes: 12 },
+    { nome: 'Janeiro/27', ano: 2027, mes: 1 },
+    { nome: 'Fevereiro/27', ano: 2027, mes: 2 },
+    { nome: 'Março/27', ano: 2027, mes: 3 },
+    { nome: 'Abril/27', ano: 2027, mes: 4 }
   ];
 
   let caixaAcumulado = capital;
   
-  // Deduz gastos ocorridos ANTES de Abril para a matemática bater certo.
-  const gastosAnteriores = contasAPagar.filter(c => c.mes_index < 3).reduce((acc, curr) => acc + curr.valor_num, 0);
+  // Deduz do "Saldo Base" apenas despesas que por ventura foram datadas ANTES do marco zero (Maio 2026)
+  const gastosAnteriores = contasAPagar.filter(c => {
+    const anoC = parseInt(c.vencimento.split('-')[0]);
+    const mesC = parseInt(c.vencimento.split('-')[1]);
+    return anoC < 2026 || (anoC === 2026 && mesC < 5);
+  }).reduce((acc, curr) => acc + curr.valor_num, 0);
+  
   caixaAcumulado -= gastosAnteriores;
 
   const projecao = mesesInfo.map((mesObj) => {
-    const detalhesMes = contasAPagar.filter(c => c.mes_index === mesObj.idx);
+    // Filtra as contas que pertencem EXATAMENTE ao Mês E Ano correspondente
+    const detalhesMes = contasAPagar.filter(c => {
+       const anoC = parseInt(c.vencimento.split('-')[0]);
+       const mesC = parseInt(c.vencimento.split('-')[1]);
+       return anoC === mesObj.ano && mesC === mesObj.mes;
+    });
     
     const totalGastoRealNum = detalhesMes.filter(c => c.status !== 'Em orçamento').reduce((acc, curr) => acc + curr.valor_num, 0);
     const totalOrcamentoNum = detalhesMes.filter(c => c.status === 'Em orçamento').reduce((acc, curr) => acc + curr.valor_num, 0);
@@ -379,6 +401,7 @@ export default function Home() {
     else setFornecedores(fornecedores.filter(f => f.id !== id));
   };
 
+
   // ================= 3. LÓGICA KANBAN =================
   const colunasKanban = ['A Fazer', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
   const tagsSetores = ['Administrativo', 'RH', 'Infraestrutura', 'Suprimentos', 'Financeiro'];
@@ -411,7 +434,7 @@ export default function Home() {
     else setCards(cards.filter(c => c.id !== id));
   };
 
-  const handleDrop = async (targetCardId: string, area: string) => {
+  const handleDropCard = async (targetCardId: string, area: string) => {
     if (!draggedCardId || draggedCardId === targetCardId) return;
 
     const areaCards = cards.filter(c => c.area === area).sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
@@ -567,7 +590,7 @@ export default function Home() {
                             draggable={!card.bloqueado}
                             onDragStart={() => setDraggedCardId(card.id)}
                             onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; }}
-                            onDrop={(e) => { e.preventDefault(); handleDrop(card.id, card.area); }}
+                            onDrop={(e) => { e.preventDefault(); handleDropCard(card.id, card.area); }}
                             className={`p-3 rounded-xl shadow-sm border-l-4 border-y border-r border-slate-200 bg-white transition-all hover:shadow-md flex flex-col ${card.status === 'Concluído' ? 'border-l-[#009e90]' : 'border-l-[#e8601c]'} ${!card.bloqueado ? 'cursor-move' : ''}`}
                           >
                             

@@ -58,8 +58,11 @@ export default function Home() {
   const [dataInauguracao, setDataInauguracao] = useState('');
   const [cardsExpandidos, setCardsExpandidos] = useState<Record<string, boolean>>({});
   const [draggedCardId, setDraggedCardId] = useState<string | null>(null);
+  
+  // Estado para a zona de arrastar PDFs dos orçamentos
+  const [dragActive, setDragActive] = useState(false);
 
-  // Estados Financeiros (Que estavam faltando!)
+  // Estados Financeiros
   const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
@@ -172,6 +175,27 @@ export default function Home() {
   };
 
   // ================= LÓGICA ORÇAMENTOS =================
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDropFile = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      alert(`O arquivo "${file.name}" foi reconhecido!\n\nPara a leitura e preenchimento automáticos via Inteligência Artificial, é necessária a integração de uma API de Backend. \n\nPor enquanto, registre os dados manualmente no formulário abaixo.`);
+    }
+  };
+
   const salvarOrcamento = async (e: React.FormEvent) => {
     e.preventDefault();
     const dadosSalvar = {
@@ -262,16 +286,20 @@ export default function Home() {
     else setContasAPagar(contasAPagar.filter(c => c.id !== id));
   };
 
+  // ================= FIX MATEMÁTICA FINANCEIRA (ABRIL) =================
   const capital = parseCurrency(maskCurrency(saldoEmConta));
+  
   const mesesInfo = [
-    { nome: 'Maio', idx: 4 }, { nome: 'Junho', idx: 5 }, { nome: 'Julho', idx: 6 }, 
+    { nome: 'Abril', idx: 3 }, { nome: 'Maio', idx: 4 }, { nome: 'Junho', idx: 5 }, { nome: 'Julho', idx: 6 }, 
     { nome: 'Agosto', idx: 7 }, { nome: 'Setembro', idx: 8 }, { nome: 'Outubro', idx: 9 },
     { nome: 'Novembro', idx: 10 }, { nome: 'Dezembro', idx: 11 }
   ];
 
   let caixaAcumulado = capital;
-  const gastosPreMaio = contasAPagar.filter(c => c.mes_index < 4).reduce((acc, curr) => acc + curr.valor_num, 0);
-  caixaAcumulado -= gastosPreMaio;
+  
+  // Deduz gastos ocorridos ANTES de Abril para a matemática bater certo.
+  const gastosAnteriores = contasAPagar.filter(c => c.mes_index < 3).reduce((acc, curr) => acc + curr.valor_num, 0);
+  caixaAcumulado -= gastosAnteriores;
 
   const projecao = mesesInfo.map((mesObj) => {
     const detalhesMes = contasAPagar.filter(c => c.mes_index === mesObj.idx);
@@ -350,7 +378,6 @@ export default function Home() {
     if (error) alert("Erro ao excluir fornecedor: " + error.message);
     else setFornecedores(fornecedores.filter(f => f.id !== id));
   };
-
 
   // ================= 3. LÓGICA KANBAN =================
   const colunasKanban = ['A Fazer', 'Em andamento', 'Aguardando terceiros', 'Concluído'];
@@ -757,7 +784,6 @@ export default function Home() {
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex justify-between items-center mb-4 border-b pb-2 border-[#009e90]">
                 <h2 className="text-lg font-bold text-[#009e90]">Novo Paciente / Cliente VIP</h2>
-                {/* BOTÃO EXPORTAR EXCEL (CLIENTES) */}
                 <button 
                   onClick={() => exportarParaExcel(clientes, [{key:'nome',label:'Nome'}, {key:'whatsapp',label:'WhatsApp'}, {key:'tipo',label:'Medicação'}, {key:'compras',label:'Compras'}, {key:'atendimento',label:'Perfil de Atendimento'}], 'Clientes_VIP')}
                   className="bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 hover:bg-[#009e90] hover:text-white transition-all px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
@@ -831,7 +857,6 @@ export default function Home() {
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex justify-between items-center mb-4 border-b pb-2 border-[#009e90]">
                 <h2 className="text-lg font-bold text-[#009e90]">Novo Fornecedor</h2>
-                {/* BOTÃO EXPORTAR EXCEL (FORNECEDORES) */}
                 <button 
                   onClick={() => exportarParaExcel(fornecedores, [{key:'nome',label:'Fornecedor'}, {key:'contato',label:'Contato'}, {key:'compras',label:'O que vendem?'}, {key:'observacoes',label:'Observações Gerais'}], 'Fornecedores')}
                   className="bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 hover:bg-[#009e90] hover:text-white transition-all px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
@@ -893,10 +918,25 @@ export default function Home() {
         {/* COMPARADOR DE ORÇAMENTOS */}
         {abaAtiva === 'orcamentos' && (
           <div className="flex flex-col gap-6">
+            
+            {/* ÁREA DE DRAG AND DROP */}
+            <div 
+              className={`bg-white rounded-2xl shadow-sm border-2 border-dashed transition-all p-8 text-center flex flex-col items-center justify-center cursor-pointer ${dragActive ? 'border-[#009e90] bg-[#eaf8f1]' : 'border-slate-300 hover:border-[#009e90]'}`}
+              onDragEnter={handleDrag}
+              onDragLeave={handleDrag}
+              onDragOver={handleDrag}
+              onDrop={handleDropFile}
+              onClick={() => alert("Para a IA ler e preencher sozinha, precisamos integrar uma API (ex: OpenAI/Gemini) no backend do Vercel. Por enquanto, registre manualmente abaixo.")}
+            >
+              <span className="text-4xl mb-2">📄</span>
+              <h3 className="font-bold text-slate-700 text-lg">Arraste o PDF do Orçamento aqui</h3>
+              <p className="text-slate-400 text-sm mt-1">O sistema preparará a leitura inteligente em breve.</p>
+            </div>
+
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
               <div className="flex justify-between items-center mb-4 border-b pb-2 border-[#009e90]">
                 <div>
-                  <h2 className="text-lg font-bold text-[#009e90]">Registrar Orçamento</h2>
+                  <h2 className="text-lg font-bold text-[#009e90]">Registro Manual</h2>
                   <p className="text-xs text-slate-500">Ex: Digite "Fachada" no Serviço para comparar todas as propostas de Fachada juntas.</p>
                 </div>
               </div>

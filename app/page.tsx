@@ -61,9 +61,13 @@ export default function Home() {
   
   const [dragActive, setDragActive] = useState(false);
 
+  // Estados Financeiros
   const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
   const [editandoId, setEditandoId] = useState<string | null>(null);
   const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
+  
+  // NOVO: Estado para a Busca de Despesas
+  const [buscaDespesa, setBuscaDespesa] = useState('');
 
   const [novoCliente, setNovoCliente] = useState({ nome: '', whatsapp: '', compras: '', atendimento: '', tipo: '' });
   const [editandoCliId, setEditandoCliId] = useState<string | null>(null);
@@ -281,10 +285,17 @@ export default function Home() {
     else setContasAPagar(contasAPagar.filter(c => c.id !== id));
   };
 
+  // Função para filtrar as despesas na tela baseada na barra de pesquisa
+  const contasFiltradas = contasAPagar.filter(conta => 
+    conta.descricao.toLowerCase().includes(buscaDespesa.toLowerCase()) ||
+    conta.vencimento.includes(buscaDespesa) ||
+    conta.valor_str.includes(buscaDespesa) ||
+    (conta.status || '').toLowerCase().includes(buscaDespesa.toLowerCase())
+  );
+
   // ================= CORREÇÃO MATEMÁTICA FINANCEIRA =================
   const capital = parseCurrency(maskCurrency(saldoEmConta));
   
-  // Projeção dinâmica baseada no Marco Zero: Maio/2026
   const mesesInfo = [
     { nome: 'Maio/26', ano: 2026, mes: 5 },
     { nome: 'Junho/26', ano: 2026, mes: 6 },
@@ -302,7 +313,6 @@ export default function Home() {
 
   let caixaAcumulado = capital;
   
-  // Deduz do "Saldo Base" apenas despesas datadas ANTES do marco zero (Maio 2026)
   const gastosAnteriores = contasAPagar.filter(c => {
     const anoC = parseInt(c.vencimento.split('-')[0]);
     const mesC = parseInt(c.vencimento.split('-')[1]);
@@ -647,7 +657,42 @@ export default function Home() {
         {abaAtiva === 'contas' && (
           <div className="flex flex-col gap-6">
             <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-lg font-bold mb-4 border-b pb-2 border-[#009e90] text-[#009e90]">Novo Lançamento Financeiro</h2>
+              <div className="flex justify-between items-center mb-4 border-b pb-2 border-[#009e90]">
+                <h2 className="text-lg font-bold text-[#009e90]">Novo Lançamento Financeiro</h2>
+                {/* BOTÃO EXPORTAR EXCEL (FINANCEIRO) */}
+                <button 
+                  onClick={() => {
+                    const dadosFinanceiros = contasFiltradas.map(c => ({
+                      vencimento: c.vencimento.split('-').reverse().join('/'),
+                      descricao: c.descricao,
+                      status: c.status,
+                      valor: `R$ ${maskCurrency(c.valor_str)}`
+                    }));
+                    
+                    const totalGasto = contasFiltradas.reduce((acc, c) => acc + c.valor_num, 0);
+                    dadosFinanceiros.push({
+                      vencimento: 'TOTAL GERAL',
+                      descricao: '-',
+                      status: '-',
+                      valor: `R$ ${maskCurrency((totalGasto * 100).toFixed(0))}`
+                    });
+                    
+                    exportarParaExcel(
+                      dadosFinanceiros, 
+                      [
+                        {key: 'vencimento', label: 'Data de Pagamento'}, 
+                        {key: 'descricao', label: 'Detalhamento das Despesas'}, 
+                        {key: 'status', label: 'Status'}, 
+                        {key: 'valor', label: 'Valor (R$)'}
+                      ], 
+                      'Relatorio_Financeiro'
+                    );
+                  }}
+                  className="bg-[#eaf8f1] text-[#009e90] border border-[#009e90]/20 hover:bg-[#009e90] hover:text-white transition-all px-4 py-1.5 rounded-lg text-xs font-bold flex items-center gap-2"
+                >
+                  📥 Exportar Excel
+                </button>
+              </div>
               <form onSubmit={salvarDespesa} className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
                 <div className="md:col-span-2">
                   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1">Descrição</label>
@@ -675,14 +720,31 @@ export default function Home() {
               </form>
             </section>
 
-            <details className="bg-white rounded-2xl shadow-sm border border-slate-200 group" open>
+            {/* REMOVIDO "open" PARA MANTER FECHADO POR PADRÃO */}
+            <details className="bg-white rounded-2xl shadow-sm border border-slate-200 group">
               <summary className="p-4 font-bold text-slate-700 cursor-pointer hover:bg-slate-50 outline-none border-b border-transparent group-open:border-slate-100 flex justify-between items-center list-none [&::-webkit-details-marker]:hidden transition-all">
                 <span className="flex items-center gap-2">
                   <span className="text-[#009e90] text-xs transform group-open:rotate-180 transition-transform duration-200">▼</span> 
                   Histórico de Lançamentos
                 </span>
-                <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg text-slate-500 font-bold">{contasAPagar.length} registos</span>
+                <span className="text-[10px] bg-slate-100 px-2 py-1 rounded-lg text-slate-500 font-bold">{contasFiltradas.length} registos</span>
               </summary>
+              <div className="p-4 border-b border-slate-100 bg-slate-50">
+                {/* BARRA DE PESQUISA DESCRITIVA */}
+                <div className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-slate-200">
+                  <div className="flex items-center gap-2 w-full md:w-1/2">
+                    <span className="text-slate-400">🔍</span>
+                    <input 
+                      type="text" 
+                      placeholder="Buscar por fornecedor, serviço, data ou status..." 
+                      value={buscaDespesa}
+                      onChange={(e) => setBuscaDespesa(e.target.value)}
+                      className="w-full bg-transparent outline-none text-sm text-slate-700"
+                    />
+                  </div>
+                  {buscaDespesa && <span className="text-[10px] font-bold text-[#009e90] bg-[#eaf8f1] px-2 py-1 rounded-lg">Filtrado</span>}
+                </div>
+              </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left min-w-[600px]">
                   <thead className="bg-[#eaf8f1] border-b border-[#009e90]/20 text-[10px] uppercase font-bold text-[#009e90]">
@@ -695,10 +757,10 @@ export default function Home() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
-                    {contasAPagar.length === 0 && (
-                      <tr><td colSpan={5} className="p-4 text-center text-slate-400 italic">Nenhum lançamento efetuado.</td></tr>
+                    {contasFiltradas.length === 0 && (
+                      <tr><td colSpan={5} className="p-8 text-center text-slate-400 italic">Nenhum lançamento encontrado.</td></tr>
                     )}
-                    {contasAPagar.map((conta) => (
+                    {contasFiltradas.map((conta) => (
                       <tr key={conta.id} className="hover:bg-slate-50 transition-all">
                         <td className="px-6 py-3">
                           {editandoId === conta.id ? 

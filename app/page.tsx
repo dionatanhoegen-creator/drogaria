@@ -711,8 +711,9 @@ export default function Home() {
                   <div className="flex gap-2">
                     <input type="number" min="1" max="48" value={novaConta.parcelas} onChange={(e) => setNovaConta({...novaConta, parcelas: e.target.value})} className="w-16 border rounded-xl p-2.5 text-sm text-center outline-none focus:border-[#009e90]" />
                     <select value={novaConta.status} onChange={(e) => setNovaConta({...novaConta, status: e.target.value})} className="flex-1 border rounded-xl p-2.5 text-[10px] font-bold outline-none focus:border-[#009e90]">
-                      <option value="Pagar">Gasto Real (Vermelho)</option>
-                      <option value="Em orçamento">Em orçamento (Azul)</option>
+                      <option value="Pagar">A Pagar (Vermelho)</option>
+                      <option value="Pago">Pago (Azul)</option>
+                      <option value="Em orçamento">Em orçamento</option>
                     </select>
                     <button type="submit" className="bg-[#e8601c] hover:bg-[#d05315] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all">SALVAR</button>
                   </div>
@@ -720,7 +721,6 @@ export default function Home() {
               </form>
             </section>
 
-            {/* REMOVIDO "open" PARA MANTER FECHADO POR PADRÃO */}
             <details className="bg-white rounded-2xl shadow-sm border border-slate-200 group">
               <summary className="p-4 font-bold text-slate-700 cursor-pointer hover:bg-slate-50 outline-none border-b border-transparent group-open:border-slate-100 flex justify-between items-center list-none [&::-webkit-details-marker]:hidden transition-all">
                 <span className="flex items-center gap-2">
@@ -777,11 +777,12 @@ export default function Home() {
                         <td className="px-6 py-3">
                           {editandoId === conta.id ? (
                              <select value={tempEdit.status} onChange={(e) => setTempEdit({...tempEdit, status: e.target.value})} className="text-[10px] font-bold border rounded p-1 outline-none">
-                                <option value="Pagar">Pagar</option>
+                                <option value="Pagar">A Pagar</option>
+                                <option value="Pago">Pago</option>
                                 <option value="Em orçamento">Em orçamento</option>
                              </select>
                           ) : (
-                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${conta.status === 'Em orçamento' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700'}`}>
+                            <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${conta.status === 'Pago' ? 'bg-blue-100 text-blue-700' : conta.status === 'Em orçamento' ? 'bg-slate-100 text-slate-700' : 'bg-red-100 text-red-700'}`}>
                               {conta.status}
                             </span>
                           )}
@@ -789,7 +790,7 @@ export default function Home() {
                         <td className="px-6 py-3 text-right">
                           {editandoId === conta.id ? 
                             <input type="text" value={tempEdit.valor} onChange={(e) => setTempEdit({...tempEdit, valor: maskCurrency(e.target.value)})} className="border rounded p-1.5 text-right text-xs font-bold outline-none focus:border-[#009e90]" /> : 
-                            <span className={`font-black ${conta.status === 'Em orçamento' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(conta.valor_str)}</span>
+                            <span className={`font-black ${conta.status === 'Pago' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(conta.valor_str)}</span>
                           }
                         </td>
                         <td className="px-6 py-3 text-center space-x-3">
@@ -826,17 +827,23 @@ export default function Home() {
                       <div className="space-y-1.5 mt-2 h-32 overflow-y-auto pr-1 border-l-2 border-slate-100 pl-2">
                         {p.detalhesGastoReal.length > 0 && (
                           <div className='mb-2 border-b pb-1 border-slate-100'>
-                            <p className='text-[9px] font-bold text-red-500 mb-1 uppercase'>Saídas Reais</p>
+                            <p className='text-[9px] font-bold text-slate-500 mb-1 uppercase'>Saídas Reais</p>
                             {p.detalhesGastoReal.map((c: any) => (
-                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-slate-800">R$ {maskCurrency(c.valor_str)}</span></div>
+                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600 pb-0.5">
+                                <span className="truncate w-32">{c.descricao}</span>
+                                <span className={`font-bold ${c.status === 'Pago' ? 'text-blue-600' : 'text-red-600'}`}>R$ {maskCurrency(c.valor_str)}</span>
+                              </div>
                             ))}
                           </div>
                         )}
                         {p.detalhesOrcamento.length > 0 && (
                           <div className='border-b border-slate-100 pb-1'>
-                            <p className='text-[9px] font-bold text-blue-500 mb-1 uppercase'>Em Orçamento</p>
+                            <p className='text-[9px] font-bold text-slate-500 mb-1 uppercase'>Em Orçamento</p>
                             {p.detalhesOrcamento.map((c: any) => (
-                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-blue-600 pb-0.5"><span className="truncate w-32">{c.descricao}</span><span className="font-bold text-blue-800">R$ {maskCurrency(c.valor_str)}</span></div>
+                              <div key={c.id} className="flex justify-between text-[10px] font-medium text-slate-600 pb-0.5">
+                                <span className="truncate w-32">{c.descricao}</span>
+                                <span className="font-bold text-slate-400">R$ {maskCurrency(c.valor_str)}</span>
+                              </div>
                             ))}
                           </div>
                         )}

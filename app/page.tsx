@@ -62,9 +62,9 @@ export default function Home() {
   const [dragActive, setDragActive] = useState(false);
 
   // Estados Financeiros
-  const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
+  const [novaConta, setNovaConta] = useState({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'A Pagar' });
   const [editandoId, setEditandoId] = useState<string | null>(null);
-  const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'Pagar' });
+  const [tempEdit, setTempEdit] = useState({ descricao: '', vencimento: '', valor: '', status: 'A Pagar' });
   
   // NOVO: Estado para a Busca de Despesas
   const [buscaDespesa, setBuscaDespesa] = useState('');
@@ -257,7 +257,7 @@ export default function Home() {
     if (inseridos) {
       setContasAPagar([...contasAPagar, ...inseridos].sort((a, b) => a.vencimento.localeCompare(b.vencimento)));
     }
-    setNovaConta({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'Pagar' });
+    setNovaConta({ descricao: '', vencimento: '', valor: '', parcelas: '1', status: 'A Pagar' });
   };
 
   const confirmarEdicao = async (id: string) => {
@@ -527,10 +527,10 @@ export default function Home() {
                   <p className="text-[10px] text-slate-500 font-bold uppercase mb-1">Previsão em {p.nome}</p>
                   <div className='flex gap-3'>
                     {p.totalGastoRealNum > 0 && (
-                      <p className="text-xl font-bold text-red-600">R$ {maskCurrency((p.totalGastoRealNum * 100).toString())} <span className="text-[10px] text-red-400">(Real)</span></p>
+                      <p className="text-xl font-bold text-red-600">R$ {maskCurrency(Math.round(p.totalGastoRealNum * 100).toString())} <span className="text-[10px] text-red-400">(Real)</span></p>
                     )}
                     {p.totalOrcamentoNum > 0 && (
-                      <p className="text-xl font-bold text-blue-600">R$ {maskCurrency((p.totalOrcamentoNum * 100).toString())} <span className="text-[10px] text-blue-400">(Orç)</span></p>
+                      <p className="text-xl font-bold text-blue-600">R$ {maskCurrency(Math.round(p.totalOrcamentoNum * 100).toString())} <span className="text-[10px] text-blue-400">(Orç)</span></p>
                     )}
                     {p.totalSaidasMes === 0 && (
                       <p className="text-2xl font-black text-[#e8601c]">R$ 0,00</p>
@@ -674,7 +674,7 @@ export default function Home() {
                       vencimento: 'TOTAL GERAL',
                       descricao: '-',
                       status: '-',
-                      valor: `R$ ${maskCurrency((totalGasto * 100).toFixed(0))}`
+                      valor: `R$ ${maskCurrency(Math.round(totalGasto * 100).toString())}`
                     });
                     
                     exportarParaExcel(
@@ -711,9 +711,9 @@ export default function Home() {
                   <div className="flex gap-2">
                     <input type="number" min="1" max="48" value={novaConta.parcelas} onChange={(e) => setNovaConta({...novaConta, parcelas: e.target.value})} className="w-16 border rounded-xl p-2.5 text-sm text-center outline-none focus:border-[#009e90]" />
                     <select value={novaConta.status} onChange={(e) => setNovaConta({...novaConta, status: e.target.value})} className="flex-1 border rounded-xl p-2.5 text-[10px] font-bold outline-none focus:border-[#009e90]">
-                      <option value="Pagar">A Pagar (Vermelho)</option>
+                      <option value="A Pagar">A Pagar (Vermelho)</option>
                       <option value="Pago">Pago (Azul)</option>
-                      <option value="Em orçamento">Em orçamento</option>
+                      <option value="Em orçamento">Em orçamento (Azul)</option>
                     </select>
                     <button type="submit" className="bg-[#e8601c] hover:bg-[#d05315] text-white px-5 py-2.5 rounded-xl font-bold text-sm shadow-md transition-all">SALVAR</button>
                   </div>
@@ -777,7 +777,7 @@ export default function Home() {
                         <td className="px-6 py-3">
                           {editandoId === conta.id ? (
                              <select value={tempEdit.status} onChange={(e) => setTempEdit({...tempEdit, status: e.target.value})} className="text-[10px] font-bold border rounded p-1 outline-none">
-                                <option value="Pagar">A Pagar</option>
+                                <option value="A Pagar">A Pagar</option>
                                 <option value="Pago">Pago</option>
                                 <option value="Em orçamento">Em orçamento</option>
                              </select>
@@ -819,7 +819,7 @@ export default function Home() {
                   <div key={p.nome} className={`snap-start w-64 bg-white p-5 rounded-2xl border shadow-sm flex flex-col ${p.saldoFinal < 0 ? 'bg-red-50 border-red-200' : 'border-slate-200'}`}>
                     <div className="flex justify-between items-center border-b pb-2 mb-3 border-slate-100">
                       <span className="font-black text-[#009e90] text-lg">{p.nome}</span>
-                      <span className="text-[10px] bg-[#e8601c]/10 text-[#e8601c] px-2 py-1 rounded-lg font-bold">Saída R$ {maskCurrency((p.totalSaidasMes * 100).toString())}</span>
+                      <span className="text-[10px] bg-[#e8601c]/10 text-[#e8601c] px-2 py-1 rounded-lg font-bold">Saída R$ {maskCurrency(Math.round(p.totalSaidasMes * 100).toString())}</span>
                     </div>
                     
                     <details className="group mb-4 flex-1">
@@ -853,7 +853,7 @@ export default function Home() {
 
                     <div className="border-t border-slate-100 pt-3 mt-auto">
                       <p className="text-[9px] font-bold text-slate-400 uppercase">Saldo Final Projetado</p>
-                      <p className={`text-xl font-black ${p.saldoFinal < 0 ? 'text-red-600' : 'text-[#009e90]'}`}>R$ {maskCurrency((p.saldoFinal * 100).toString())}</p>
+                      <p className={`text-xl font-black ${p.saldoFinal < 0 ? 'text-red-600' : 'text-[#009e90]'}`}>R$ {maskCurrency(Math.round(p.saldoFinal * 100).toString())}</p>
                     </div>
                   </div>
                 ))}
@@ -1060,7 +1060,7 @@ export default function Home() {
                         </select>
                       </div>
                       
-                      <p className="text-2xl font-black text-[#e8601c] mb-3">R$ {maskCurrency(orc.valor_num.toString() + '00')}</p>
+                      <p className="text-2xl font-black text-[#e8601c] mb-3">R$ {maskCurrency(Math.round(orc.valor_num * 100).toString())}</p>
                       
                       <div className="space-y-1.5 text-xs flex-1">
                         <p><span className="font-bold text-slate-400 uppercase">Prazo:</span> <span className="font-medium text-slate-700">{orc.prazo || '-'}</span></p>
